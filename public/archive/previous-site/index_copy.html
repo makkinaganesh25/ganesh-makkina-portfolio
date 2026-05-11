@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ganesh Makkina | Data Engineer Portfolio</title>
+
+  <!-- Inter Font & Fira Code for a technical feel -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fira+Code:wght@500&display=swap" rel="stylesheet" />
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            inter: ['Inter', 'sans-serif'],
+            mono: ['Fira Code', 'monospace']
+          },
+          colors: {
+            accent: '#2dd4bf', // teal-400
+            'accent-dark': '#14b8a6', // teal-500
+            darkbg: '#0f172a', // slate-900
+            'slate-light': '#1e293b', // slate-800
+            'slate-text': '#94a3b8' // slate-400
+          }
+        }
+      }
+    };
+  </script>
+
+  <!-- tsParticles for dynamic network background -->
+  <script src="https://cdn.jsdelivr.net/npm/tsparticles@2/tsparticles.bundle.min.js"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+
+  <style>
+    /* === CORE STYLES === */
+    body {
+      font-family: 'Inter', sans-serif;
+      margin: 0;
+      overflow-x: hidden;
+      background-color: #0f172a; /* Fallback for the body */
+    }
+    #tsparticles {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: -1;
+    }
+    /* === ANIMATION & INTERACTIVITY === */
+    .fade-in {
+      opacity: 0;
+      transform: translateY(30px);
+      transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+    }
+    .fade-in.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    /* Staggered animation for list items */
+    .stagger-in > * {
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 0.5s ease-out, transform 0.5s ease-out;
+    }
+    nav ul li a.active-link { color: #2dd4bf; }
+
+    /* === NEW: THE DATA PIPELINE VISUAL === */
+    /* This creates the vertical line on the left for large screens */
+    .pipeline-container {
+        position: absolute;
+        top: 0;
+        left: 2rem; /* Positioned from the left edge */
+        width: 1px;
+        height: 100%;
+        display: none; /* Hidden on small screens */
+    }
+    @media (min-width: 1024px) {
+        .pipeline-container { display: block; }
+    }
+    .pipeline-path {
+        stroke: #1e293b; /* slate-800 */
+        stroke-width: 3;
+        fill: none;
+    }
+    .pipeline-node {
+        transition: fill 0.3s ease, r 0.3s ease;
+        fill: #1e293b; /* slate-800 */
+    }
+    .pipeline-node.active {
+        fill: #2dd4bf; /* accent color */
+        r: 8px; /* Enlarge the active node */
+    }
+
+    /* === NEW: PROJECT MODAL === */
+    .project-modal {
+        position: fixed;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(15, 23, 42, 0.8);
+        backdrop-filter: blur(8px);
+        display: none; /* Hidden by default */
+        align-items: center;
+        justify-content: center;
+        z-index: 100;
+        opacity: 0;
+        transition: opacity 0.3s ease-in-out;
+    }
+    .project-modal.open { display: flex; }
+    .project-modal.visible { opacity: 1; }
+    .modal-content {
+        background: #1e293b;
+        border: 1px solid #334155;
+        border-radius: 12px;
+        width: 90%;
+        max-width: 700px;
+        max-height: 90vh;
+        overflow-y: auto;
+        transform: scale(0.95);
+        transition: transform 0.3s ease-in-out;
+    }
+    .project-modal.visible .modal-content { transform: scale(1); }
+  </style>
+</head>
+<body class="relative text-gray-100 bg-darkbg">
+  <!-- NEW: Data Pipeline SVG visual for large screens -->
+  <div class="pipeline-container" aria-hidden="true">
+    <svg width="100%" height="100%" preserveAspectRatio="none">
+        <path id="pipeline-line" class="pipeline-path" d="M0 200 v20000" />
+        <!-- Nodes will be added dynamically by JavaScript to mark sections -->
+    </svg>
+  </div>
+
+  <!-- Dynamic particle background -->
+  <div id="tsparticles"></div>
+
+  <!-- NAVIGATION: Themed for the data pipeline journey -->
+  <nav class="fixed top-0 w-full bg-darkbg/80 backdrop-blur-lg z-50 border-b border-slate-light/50">
+    <div class="container mx-auto flex items-center justify-between p-4">
+      <a href="#hero" class="text-2xl font-bold font-mono tracking-tighter">[GM]</a>
+      <button id="nav-toggle" class="md:hidden focus:outline-none"><i data-lucide="menu" class="w-6 h-6"></i></button>
+      <ul id="nav-menu" class="hidden md:flex space-x-6 text-lg items-center">
+        <li><a href="#about" class="hover:text-accent transition-colors">1. Architect</a></li>
+        <li><a href="#skills" class="hover:text-accent transition-colors">2. Transform</a></li>
+        <li><a href="#projects" class="hover:text-accent transition-colors">3. Warehouse</a></li>
+        <li><a href="#contact" class="hover:text-accent transition-colors">4. Insights</a></li>
+        <li><a href="Ganesh_Makkina_Resume.pdf" download class="ml-4 px-4 py-2 border border-accent text-accent rounded-md font-semibold text-sm hover:bg-accent hover:text-darkbg transition">Resume</a></li>
+      </ul>
+    </div>
+    <!-- Mobile Menu -->
+    <div id="mobile-menu" class="hidden md:hidden bg-darkbg bg-opacity-90">
+        <ul class="flex flex-col items-center space-y-4 py-4">
+            <li><a href="#about" class="mobile-nav-link hover:text-accent">Architect</a></li>
+            <li><a href="#projects" class="mobile-nav-link hover:text-accent">Warehouse</a></li>
+            <li><a href="#skills" class="mobile-nav-link hover:text-accent">Transform</a></li>
+            <li><a href="#contact" class="mobile-nav-link hover:text-accent">Insights</a></li>
+        </ul>
+    </div>
+  </nav>
+
+  <!-- Main content container -->
+  <main class="container mx-auto px-6 relative z-10">
+    <!-- HERO: Data Ingestion stage -->
+    <section id="hero" class="min-h-screen flex flex-col items-start justify-center text-left relative">
+      <div class="max-w-3xl fade-in">
+        <p class="text-lg md:text-xl text-accent font-mono mb-4">// INGEST</p>
+        <h1 class="text-4xl md:text-6xl lg:text-7xl font-extrabold mb-4">Ganesh Makkina</h1>
+        <p class="text-2xl md:text-3xl mb-8 text-gray-300">I engineer <span class="text-accent">data pipelines</span> that transform raw information into strategic assets.</p>
+        <p class="mb-10 text-lg text-slate-text max-w-2xl">From chaotic streams to structured insights, I build scalable, cloud-native platforms on AWS and GCP that empower data-driven decisions and fuel business growth.</p>
+        <div class="space-x-4"><a href="#projects" class="px-8 py-3 bg-accent text-darkbg rounded-lg font-bold hover:bg-accent-dark transition">Explore Projects</a></div>
+      </div>
+    </section>
+
+    <!-- ABOUT: Architect stage - WITH PROFILE PICTURE REINTEGRATED -->
+    <section id="about" class="py-24 sm:py-32">
+       <div class="text-center fade-in mb-16">
+            <h2 class="text-4xl font-bold mb-2 font-mono">1. The Architect</h2>
+            <p class="text-lg text-slate-text max-w-3xl mx-auto">The blueprint for turning raw data into actionable intelligence begins here.</p>
+        </div>
+      <div class="grid lg:grid-cols-12 gap-12 items-center">
+         <!-- Profile Picture Column -->
+        <div class="lg:col-span-4 fade-in">
+          <div class="flex justify-center">
+            <div class="relative w-64 h-64 rounded-full p-2 bg-gradient-to-tr from-accent to-transparent shadow-lg transition-transform duration-300 hover:scale-105">
+              <img src="pic.JPG" alt="Ganesh Makkina" class="w-full h-full rounded-full object-cover bg-darkbg" onerror="this.onerror=null;this.src='https://placehold.co/256x256/0f172a/94a3b8?text=GM';">
+            </div>
+          </div>
+        </div>
+        <!-- Text Content Column -->
+        <div class="lg:col-span-8 fade-in text-lg text-slate-text space-y-6">
+            <p>Hello! I’m Ganesh Makkina, a Data Engineer who thrives on architecting robust, scalable data ecosystems. My core philosophy is that a data platform should be more than just functional—it must be maintainable, cost-efficient, and agile enough to evolve with business needs.</p>
+            <p>At <strong class="text-gray-100">Quantiphi</strong>, I engineered large-scale data lakes on <strong class="text-gray-100">AWS</strong> and optimized complex ETL workflows on <strong class="text-gray-100">Databricks</strong> and <strong class="text-gray-100">GCP</strong>, turning high-volume raw data into clean, actionable intelligence. My recent Master's in Data Science from Rutgers has further deepened my expertise in statistical modeling and advanced data management.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- SKILLS: Transformation stage -->
+    <section id="skills" class="py-24 sm:py-32">
+        <div class="text-center fade-in">
+            <h2 class="text-4xl font-bold mb-4 font-mono">2. The Transformation Engine</h2>
+            <p class="text-lg text-slate-text max-w-3xl mx-auto">My toolkit for refining, enriching, and modeling data. These are the core technologies I use to build high-performance data transformation workflows.</p>
+        </div>
+        <div class="mt-16 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-8 stagger-in">
+            <!-- Skill Items -->
+            <div class="flex flex-col items-center text-center p-4 bg-slate-light/50 rounded-lg hover:bg-slate-light transition-all duration-300 transform hover:-translate-y-2">
+                <i data-lucide="codepen" class="w-12 h-12 text-accent mb-3"></i>
+                <h3 class="font-bold text-lg text-gray-100">Python & Spark</h3>
+                <p class="text-sm text-slate-text">for large-scale data processing & automation.</p>
+            </div>
+            <div class="flex flex-col items-center text-center p-4 bg-slate-light/50 rounded-lg hover:bg-slate-light transition-all duration-300 transform hover:-translate-y-2">
+                <i data-lucide="database" class="w-12 h-12 text-accent mb-3"></i>
+                <h3 class="font-bold text-lg text-gray-100">SQL & NoSQL</h3>
+                <p class="text-sm text-slate-text">for structured querying and flexible data storage.</p>
+            </div>
+            <div class="flex flex-col items-center text-center p-4 bg-slate-light/50 rounded-lg hover:bg-slate-light transition-all duration-300 transform hover:-translate-y-2">
+                <i data-lucide="cloud" class="w-12 h-12 text-accent mb-3"></i>
+                <h3 class="font-bold text-lg text-gray-100">AWS & GCP</h3>
+                <p class="text-sm text-slate-text">for scalable, serverless, and managed cloud infrastructure.</p>
+            </div>
+            <div class="flex flex-col items-center text-center p-4 bg-slate-light/50 rounded-lg hover:bg-slate-light transition-all duration-300 transform hover:-translate-y-2">
+                <i data-lucide="workflow" class="w-12 h-12 text-accent mb-3"></i>
+                <h3 class="font-bold text-lg text-gray-100">Orchestration</h3>
+                <p class="text-sm text-slate-text">with Airflow, AWS Glue, and Cloud Composer.</p>
+            </div>
+            <div class="flex flex-col items-center text-center p-4 bg-slate-light/50 rounded-lg hover:bg-slate-light transition-all duration-300 transform hover:-translate-y-2">
+                <i data-lucide="warehouse" class="w-12 h-12 text-accent mb-3"></i>
+                <h3 class="font-bold text-lg text-gray-100">Data Warehousing</h3>
+                <p class="text-sm text-slate-text">using Redshift, BigQuery, and Databricks.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- PROJECTS: Warehouse stage - WITH ORIGINAL IMAGES AND TAGS -->
+    <section id="projects" class="py-24 sm:py-32">
+        <div class="text-center fade-in">
+            <h2 class="text-4xl font-bold mb-4 font-mono">3. The Data Warehouse</h2>
+            <p class="text-lg text-slate-text max-w-3xl mx-auto">A collection of curated data assets. Each project represents an end-to-end solution, delivering tangible value from complex datasets.</p>
+        </div>
+        <div class="mt-16 grid gap-10 md:grid-cols-2 lg:grid-cols-3 stagger-in">
+            <!-- Project Card 1 -->
+            <div class="bg-slate-light rounded-xl overflow-hidden shadow-lg border border-transparent transition-all duration-300 hover:border-accent hover:-translate-y-2 flex flex-col">
+                <img src="enterprise_migration.png" alt="Data Lake Migration" class="w-full aspect-video object-cover" onerror="this.onerror=null;this.src='https://placehold.co/600x338/1e293b/2dd4bf?text=Data+Lake';">
+                <div class="p-6 flex flex-col flex-grow">
+                    <h3 class="text-xl font-semibold mb-2">Enterprise Data Lake Migration</h3>
+                    <p class="text-sm text-slate-text mb-4">Migrated Elasticsearch to an S3/Redshift architecture, cutting costs by 30% & boosting query performance by 20%.</p>
+                     <div class="mt-auto">
+                        <div class="flex flex-wrap gap-2 mb-4">
+                            <span class="text-xs bg-accent/20 text-accent px-2 py-1 rounded-full">Redshift</span>
+                            <span class="text-xs bg-accent/20 text-accent px-2 py-1 rounded-full">Spark ETL</span>
+                            <span class="text-xs bg-accent/20 text-accent px-2 py-1 rounded-full">Airflow</span>
+                        </div>
+                        <button class="project-modal-trigger w-full px-5 py-2 border border-accent/50 text-accent rounded-lg font-semibold hover:bg-accent hover:text-darkbg transition" data-project-id="proj1">
+                          View Case Study <i data-lucide="arrow-right" class="inline-block w-4 h-4 ml-1"></i>
+                        </button>
+                     </div>
+                </div>
+            </div>
+            <!-- Project Card 2 -->
+             <div class="bg-slate-light rounded-xl overflow-hidden shadow-lg border border-transparent transition-all duration-300 hover:border-accent hover:-translate-y-2 flex flex-col">
+                <img src="covid19.png" alt="COVID-19 Analytics" class="w-full aspect-video object-cover" onerror="this.onerror=null;this.src='https://placehold.co/600x338/1e293b/2dd4bf?text=Analytics';">
+                <div class="p-6 flex flex-col flex-grow">
+                    <h3 class="text-xl font-semibold mb-2">COVID-19 Analytics Platform</h3>
+                    <p class="text-sm text-slate-text mb-4">Engineered a serverless pipeline for 10M+ daily records, powering public health dashboards in QuickSight.</p>
+                     <div class="mt-auto">
+                        <div class="flex flex-wrap gap-2 mb-4">
+                             <span class="text-xs bg-accent/20 text-accent px-2 py-1 rounded-full">AWS Lambda</span>
+                             <span class="text-xs bg-accent/20 text-accent px-2 py-1 rounded-full">AWS Glue</span>
+                             <span class="text-xs bg-accent/20 text-accent px-2 py-1 rounded-full">QuickSight</span>
+                        </div>
+                        <button class="project-modal-trigger w-full px-5 py-2 border border-accent/50 text-accent rounded-lg font-semibold hover:bg-accent hover:text-darkbg transition" data-project-id="proj2">
+                          View Case Study <i data-lucide="arrow-right" class="inline-block w-4 h-4 ml-1"></i>
+                        </button>
+                     </div>
+                </div>
+            </div>
+            <!-- Project Card 3 -->
+             <div class="bg-slate-light rounded-xl overflow-hidden shadow-lg border border-transparent transition-all duration-300 hover:border-accent hover:-translate-y-2 flex flex-col">
+                <img src="cso.png" alt="CSO Scheduling App" class="w-full aspect-video object-cover" onerror="this.onerror=null;this.src='https://placehold.co/600x338/1e293b/2dd4bf?text=Scheduling+App';">
+                <div class="p-6 flex flex-col flex-grow">
+                    <h3 class="text-xl font-semibold mb-2">CSO Shift Scheduling App</h3>
+                    <p class="text-sm text-slate-text mb-4">Full-stack application automating shift scheduling and conflict detection for Rutgers CSOs.</p>
+                     <div class="mt-auto">
+                        <div class="flex flex-wrap gap-2 mb-4">
+                              <span class="text-xs bg-accent/20 text-accent px-2 py-1 rounded-full">React</span>
+                              <span class="text-xs bg-accent/20 text-accent px-2 py-1 rounded-full">Node.js</span>
+                              <span class="text-xs bg-accent/20 text-accent px-2 py-1 rounded-full">Vertex AI</span>
+                        </div>
+                        <button class="project-modal-trigger w-full px-5 py-2 border border-accent/50 text-accent rounded-lg font-semibold hover:bg-accent hover:text-darkbg transition" data-project-id="proj3">
+                          View Case Study <i data-lucide="arrow-right" class="inline-block w-4 h-4 ml-1"></i>
+                        </button>
+                     </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CONTACT: Insights stage -->
+    <section id="contact" class="py-24 sm:py-32">
+        <div class="text-center fade-in">
+            <h2 class="text-4xl font-bold mb-4 font-mono">4. Get Insights</h2>
+            <p class="text-lg text-slate-text max-w-2xl mx-auto">My pipeline is built. The data is ready. Let's unlock its value. Reach out to discuss how I can architect data solutions for you.</p>
+        </div>
+        <div class="max-w-xl mx-auto mt-12 fade-in">
+            <form action="https://api.web3forms.com/submit" method="POST" class="space-y-6 text-sm p-8 bg-slate-light border border-slate-light/50 rounded-xl">
+                <input type="hidden" name="access_key" value="95f8e9dd-d29e-4b40-811a-27fefb9c4b3a">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label for="name" class="block mb-2 font-semibold font-mono text-slate-text">Name</label>
+                        <input id="name" name="name" type="text" placeholder="Your Name" class="w-full px-4 py-2 rounded-md bg-darkbg border border-slate-light focus:ring-accent focus:outline-none focus:ring-2" required />
+                    </div>
+                    <div>
+                        <label for="email" class="block mb-2 font-semibold font-mono text-slate-text">Email</label>
+                        <input id="email" name="email" type="email" placeholder="you@company.com" class="w-full px-4 py-2 rounded-md bg-darkbg border border-slate-light focus:ring-accent focus:outline-none focus:ring-2" required />
+                    </div>
+                </div>
+                <div>
+                    <label for="message" class="block mb-2 font-semibold font-mono text-slate-text">Message</label>
+                    <textarea id="message" name="message" rows="5" placeholder="Your query..." class="w-full px-4 py-2 rounded-md bg-darkbg border border-slate-light focus:ring-accent focus:outline-none focus:ring-2" required></textarea>
+                </div>
+                <button type="submit" class="w-full py-3 bg-accent text-darkbg rounded-lg font-bold hover:bg-accent-dark transition-all text-base">
+                  <i data-lucide="send" class="inline-block w-4 h-4 mr-2"></i> Execute Query
+                </button>
+            </form>
+             <div class="text-center mt-8 flex justify-center space-x-6">
+                <a href="https://github.com/makkinaganesh25" target="_blank" rel="noopener noreferrer" aria-label="GitHub" class="text-slate-text hover:text-accent transition-colors"><i data-lucide="github" class="w-7 h-7"></i></a>
+                <a href="https://www.linkedin.com/in/ganesh-makkina/" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn" class="text-slate-text hover:text-accent transition-colors"><i data-lucide="linkedin" class="w-7 h-7"></i></a>
+             </div>
+        </div>
+    </section>
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="py-8 text-center text-sm fade-in text-slate-text border-t border-slate-light/20 container mx-auto">
+    <p>Designed & Built by Ganesh Makkina</p>
+    <p class="font-mono mt-2">&copy; <span id="year"></span> | All rights reserved.</p>
+  </footer>
+
+  <!-- NEW: Project Modal Structure -->
+    <div id="project-modal" class="project-modal">
+        <div id="modal-content" class="modal-content">
+            <!-- Content will be injected by JavaScript -->
+        </div>
+    </div>
+
+
+  <!-- SCRIPTS -->
+  <script>
+    // === PROJECT DATA ===
+    // Centralized data for project modals. This is much cleaner and easier to maintain.
+    const projectDetails = {
+      proj1: {
+        title: "Enterprise Data Lake Migration",
+        tags: ["AWS", "Redshift", "S3", "Spark ETL", "Airflow"],
+        description: "This project involved a large-scale migration of enterprise data from a costly Elasticsearch cluster to a modern, scalable AWS data lake architecture. The goal was to reduce operational overhead, cut costs, and improve analytical query performance.",
+        pipeline: [
+          { stage: "Source", detail: "Ingested JSON data from Elasticsearch and relational data from various production databases." },
+          { stage: "Load & Stage", detail: "Loaded raw JSON data into AWS S3 buckets. Used Airflow to schedule and manage ingestion jobs." },
+          { stage: "Transform", detail: "Developed PySpark ETL jobs to parse, clean, and transform the raw data. This included data type correction, enrichment, and structuring for analytical use." },
+          { stage: "Warehouse", detail: "Loaded the transformed data into Amazon Redshift, designing a dimensional model (star schema) for optimized BI queries." },
+          { stage: "Outcome", detail: "Achieved a 30% reduction in data infrastructure costs and a 20% improvement in key query performance, enabling faster and more reliable business reporting." }
+        ]
+      },
+      proj2: {
+        title: "COVID-19 Analytics Platform",
+        tags: ["AWS Lambda", "AWS Glue", "QuickSight", "Serverless"],
+        description: "To provide timely public health insights, I engineered a fully serverless data pipeline to process over 10 million daily COVID-19 data records from various public sources.",
+        pipeline: [
+          { stage: "Source", detail: "Ingested real-time data streams and daily batch files from public health APIs and data repositories." },
+          { stage: "Ingest & Process", detail: "Used AWS Lambda functions triggered by S3 events to perform initial, lightweight data validation and parsing." },
+          { stage: "Transform", detail: "Orchestrated AWS Glue jobs to run comprehensive ETL scripts, aggregating, normalizing, and joining datasets for analysis." },
+          { stage: "Analytics", detail: "Data was stored in S3 and queried via Amazon Athena. Developed interactive, public-facing dashboards in Amazon QuickSight for visualization." },
+          { stage: "Outcome", detail: "Delivered a highly scalable, low-cost, and near real-time analytics platform that empowered researchers and the public with critical health data." }
+        ]
+      },
+       proj3: {
+        title: "CSO Shift Scheduling App",
+        tags: ["React", "Node.js", "MySQL", "Full-Stack", "Vertex AI"],
+        description: "Developed a full-stack web application to modernize and automate the process of shift scheduling for Community Service Officers (CSOs) at Rutgers University.",
+        pipeline: [
+          { stage: "Architecture", detail: "Designed a three-tier architecture with a React frontend, Node.js (Express) backend API, and a MySQL database." },
+          { stage: "Database", detail: "Created a normalized relational database schema to manage users, shifts, availability, and scheduling conflicts efficiently." },
+          { stage: "Backend", detail: "Built RESTful API endpoints for all CRUD operations, user authentication, and business logic for automated conflict detection." },
+          { stage: "Frontend", detail: "Developed an intuitive user interface with React for CSOs to view, claim, and manage their shifts, including real-time notifications." },
+          { stage: "AI Integration", detail: "Leveraged Vertex AI for a predictive feature to forecast peak demand periods, helping administrators allocate resources more effectively." },
+          { stage: "Outcome", detail: "Significantly reduced administrative workload, eliminated scheduling conflicts, and provided a seamless user experience for over 100 CSOs." }
+        ]
+      }
+    };
+
+
+    document.addEventListener('DOMContentLoaded', () => {
+        // --- tsParticles Configuration ---
+        // This creates the animated particle background
+        tsParticles.load('tsparticles', {
+            background: { color: { value: 'transparent' } },
+            fpsLimit: 60,
+            particles: {
+                number: { value: 40, density: { enable: true, area: 800 } },
+                color: { value: '#1e293b' },
+                shape: { type: 'circle' },
+                opacity: { value: { min: 0.1, max: 0.4 } },
+                size: { value: { min: 1, max: 3 } },
+                links: { enable: true, distance: 150, color: '#2dd4bf', opacity: 0.15, width: 1 },
+                move: { enable: true, speed: 0.8, outModes: { default: 'bounce' } }
+            },
+            interactivity: {
+                events: { onHover: { enable: true, mode: 'grab' }, onClick: { enable: false } },
+                modes: { grab: { distance: 140, links: { opacity: 0.4 } } }
+            },
+            detectRetina: true
+        });
+
+        // --- Initialize Lucide Icons ---
+        lucide.createIcons();
+
+        // --- Intersection Observer for Animations ---
+        // This handles the fade-in and stagger-in effects on scroll
+        const observerOptions = { threshold: 0.1, rootMargin: "0px 0px -50px 0px" };
+        const observer = new IntersectionObserver((entries, obs) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                    if(entry.target.classList.contains('stagger-in')) {
+                        const children = entry.target.querySelectorAll(':scope > *');
+                        children.forEach((child, index) => {
+                            child.style.transitionDelay = `${index * 100}ms`;
+                        });
+                    }
+                    obs.unobserve(entry.target);
+                }
+            });
+        }, observerOptions);
+        document.querySelectorAll('.fade-in, .stagger-in').forEach(el => observer.observe(el));
+
+        // --- Mobile Navigation Logic ---
+        const navToggle = document.getElementById('nav-toggle');
+        const mobileMenu = document.getElementById('mobile-menu');
+        navToggle.addEventListener('click', () => {
+            mobileMenu.classList.toggle('hidden');
+            navToggle.innerHTML = mobileMenu.classList.contains('hidden') ? `<i data-lucide="menu" class="w-6 h-6"></i>` : `<i data-lucide="x" class="w-6 h-6"></i>`;
+            lucide.createIcons();
+        });
+        document.querySelectorAll('.mobile-nav-link').forEach(link => {
+            link.addEventListener('click', () => {
+                mobileMenu.classList.add('hidden');
+                navToggle.innerHTML = `<i data-lucide="menu" class="w-6 h-6"></i>`;
+                lucide.createIcons();
+            });
+        });
+
+        // --- Active Nav Link & Pipeline Highlighting on Scroll ---
+        const sections = document.querySelectorAll('section[id]');
+        const navLinks = document.querySelectorAll('nav ul a');
+        const pipelineContainer = document.querySelector('.pipeline-container');
+        const pipelineNodes = new Map();
+
+        // Dynamically create a node for each section on the pipeline visual
+        if (pipelineContainer) {
+            const svg = pipelineContainer.querySelector('svg');
+            sections.forEach(sec => {
+                const node = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                const yPos = sec.offsetTop + sec.offsetHeight / 3;
+                node.setAttribute("cx", "0");
+                node.setAttribute("cy", yPos);
+                node.setAttribute("r", "6");
+                node.setAttribute("class", "pipeline-node");
+                node.id = `node-${sec.id}`;
+                svg.appendChild(node);
+                pipelineNodes.set(sec.id, node);
+            });
+        }
+        
+        window.addEventListener('scroll', () => {
+            let current = '';
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop;
+                if (pageYOffset >= sectionTop - 100) { current = section.getAttribute('id'); }
+            });
+
+            // Highlight the active nav link
+            navLinks.forEach(a => {
+                a.classList.remove('text-accent', 'font-semibold');
+                if (a.getAttribute('href') === `#${current}`) { a.classList.add('text-accent', 'font-semibold'); }
+            });
+            
+            // Activate the correct node on the pipeline visual
+            pipelineNodes.forEach((node, id) => {
+                node.classList.toggle('active', id === current);
+            });
+        });
+
+        // --- Project Modal Logic ---
+        const modal = document.getElementById('project-modal');
+        const modalContent = document.getElementById('modal-content');
+
+        document.querySelectorAll('.project-modal-trigger').forEach(button => {
+            button.addEventListener('click', () => {
+                const projectId = button.dataset.projectId;
+                const data = projectDetails[projectId];
+                if (!data) return;
+
+                // Inject project data into the modal
+                modalContent.innerHTML = `
+                    <div class="p-6 md:p-8 relative">
+                        <button id="close-modal" class="absolute top-4 right-4 text-slate-text hover:text-accent p-2 z-10">&times;</button>
+                        <h2 class="text-2xl md:text-3xl font-bold mb-4 pr-8">${data.title}</h2>
+                        <div class="flex flex-wrap gap-2 mb-6">
+                            ${data.tags.map(tag => `<span class="text-xs font-mono bg-accent/20 text-accent px-2 py-1 rounded-full">${tag}</span>`).join('')}
+                        </div>
+                        <p class="text-slate-text mb-6">${data.description}</p>
+                        <h3 class="font-bold text-xl mb-4 text-gray-100 font-mono">// Pipeline Stages</h3>
+                        <div class="space-y-4">
+                        ${data.pipeline.map(item => `
+                            <div class="flex items-start space-x-4">
+                                <div><i data-lucide="chevron-right-circle" class="w-5 h-5 text-accent shrink-0 mt-1"></i></div>
+                                <div>
+                                    <h4 class="font-bold text-gray-100">${item.stage}</h4>
+                                    <p class="text-sm text-slate-text">${item.detail}</p>
+                                </div>
+                            </div>
+                        `).join('')}
+                        </div>
+                    </div>
+                `;
+                lucide.createIcons(); // Re-render icons inside the modal
+                
+                // Open the modal with a smooth animation
+                modal.classList.add('open');
+                setTimeout(() => modal.classList.add('visible'), 10);
+                document.body.style.overflow = 'hidden'; // Prevent background scrolling
+
+                document.getElementById('close-modal').addEventListener('click', closeModal);
+            });
+        });
+
+        function closeModal() {
+            modal.classList.remove('visible');
+            setTimeout(() => {
+                modal.classList.remove('open');
+                document.body.style.overflow = 'auto';
+            }, 300); // Wait for transition to finish
+        }
+
+        // Close modal on background click or Escape key press
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) { closeModal(); }
+        });
+        document.addEventListener('keydown', (e) => {
+            if (e.key === "Escape" && modal.classList.contains('open')) { closeModal(); }
+        });
+
+
+        // --- Footer Year ---
+        document.getElementById('year').textContent = new Date().getFullYear();
+    });
+  </script>
+</body>
+</html>
