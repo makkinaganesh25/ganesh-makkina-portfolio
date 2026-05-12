@@ -22,6 +22,7 @@ import { Project, Experience, SkillGroup, Education } from "../data/portfolioDat
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import type { ComponentType, RefObject } from "react";
+import { ScrollRevealTile, type ScrollRevealTone } from "./HomeMotion";
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -108,12 +109,18 @@ function TimelineMarker({
   lineClassName,
   iconClassName,
   glowClassName,
+  viewportRoot,
+  index = 0,
+  tone = "emerald",
 }: {
   Icon: ComponentType<{ className?: string; size?: string | number }>;
   isLeft: boolean;
   lineClassName: string;
   iconClassName: string;
   glowClassName?: string;
+  viewportRoot?: RefObject<Element | null>;
+  index?: number;
+  tone?: ScrollRevealTone;
 }) {
   return (
     <div className="relative order-1 flex items-center justify-center md:order-none md:col-start-2 md:row-start-1">
@@ -124,16 +131,30 @@ function TimelineMarker({
           isLeft ? "left-5 md:left-auto md:right-1/2" : "left-5 md:left-1/2"
         )}
       />
-      <div
-        className={cn(
-          "relative z-10 flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-black shadow-[0_0_25px_rgba(255,255,255,0.08)] md:h-14 md:w-14",
-          glowClassName
-        )}
+      <ScrollRevealTile
+        variant="chip"
+        tone={tone}
+        viewportRoot={viewportRoot}
+        index={index}
+        className="relative z-10"
       >
-        <Icon size={18} className={cn(iconClassName, "md:h-5 md:w-5")} />
-      </div>
+        <div
+          className={cn(
+            "flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-black shadow-[0_0_25px_rgba(255,255,255,0.08)] md:h-14 md:w-14",
+            glowClassName
+          )}
+        >
+          <Icon size={18} className={cn(iconClassName, "md:h-5 md:w-5")} />
+        </div>
+      </ScrollRevealTile>
     </div>
   );
+}
+
+function projectRevealTone(project: Project): ScrollRevealTone {
+  if (project.type === "AI") return "blue";
+  if (project.type === "DE") return "amber";
+  return "violet";
 }
 
 export function SkillsGrid({
@@ -146,13 +167,14 @@ export function SkillsGrid({
   return (
     <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
       {skills.map((group, idx) => (
-        <motion.article
+        <ScrollRevealTile
+          as="article"
           key={group.category}
-          initial={false}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={viewportRoot ? { once: true, amount: 0.3, root: viewportRoot } : { once: true, amount: 0.3 }}
-          transition={{ duration: 0.45, delay: idx * 0.08 }}
-          className="group relative overflow-hidden rounded-[1.75rem] border border-white/10 bg-zinc-900/40 p-7 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-emerald-400/30 hover:bg-zinc-900/[0.55] md:p-8"
+          variant="card"
+          tone="emerald"
+          index={idx}
+          viewportRoot={viewportRoot}
+          className="group relative overflow-hidden rounded-[1.75rem] border border-white/10 bg-zinc-950/75 p-7 shadow-[0_24px_70px_rgba(0,0,0,0.28)] backdrop-blur-md transition-all duration-300 hover:-translate-y-1 hover:border-emerald-400/30 hover:bg-zinc-950/85 md:p-8"
         >
           <div aria-hidden className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(16,185,129,0.14),transparent_45%)] opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
           <div aria-hidden className="absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-emerald-400/70 to-transparent" />
@@ -176,7 +198,7 @@ export function SkillsGrid({
               {group.skills.map((skill, skillIdx) => (
                 <li
                   key={skill}
-                  className="flex items-center justify-between gap-3 rounded-2xl border border-white/[0.06] bg-black/20 px-4 py-3 text-sm font-medium text-gray-300 transition-all duration-300 hover:border-emerald-400/20 hover:bg-white/[0.03]"
+                  className="flex items-center justify-between gap-3 rounded-2xl border border-white/[0.06] bg-black/25 px-4 py-3 text-sm font-medium text-gray-300 transition-all duration-300 hover:border-emerald-400/20 hover:bg-white/[0.04]"
                 >
                   <div className="flex items-center gap-3">
                     <span className="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.45)]" />
@@ -193,7 +215,7 @@ export function SkillsGrid({
               ))}
             </ul>
           </div>
-        </motion.article>
+        </ScrollRevealTile>
       ))}
     </div>
   );
@@ -221,21 +243,22 @@ export function ProjectTree({
           const isLeft = idx % 2 === 0;
           const isRestoredProject = restoredProjectId === project.id;
           const primaryMetric = project.impactMetrics[0];
+          const revealTone = projectRevealTone(project);
 
           return (
-            <motion.div
+            <div
               key={project.id}
-              initial={false}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={viewportRoot ? { once: true, amount: 0.25, root: viewportRoot } : { once: true, amount: 0.25 }}
-              transition={{ duration: 0.45, delay: idx * 0.08 }}
               className="grid items-center grid-cols-[40px_minmax(0,1fr)] gap-4 md:grid-cols-[minmax(0,1fr)_88px_minmax(0,1fr)] md:gap-6"
             >
-              <div
+              <ScrollRevealTile
                 className={cn(
                   "order-2 self-center md:order-none md:row-start-1",
                   isLeft ? "md:col-start-1" : "md:col-start-3"
                 )}
+                variant="timeline"
+                tone={revealTone}
+                viewportRoot={viewportRoot}
+                index={idx}
               >
                 <motion.article 
                   initial={false}
@@ -251,7 +274,7 @@ export function ProjectTree({
                     transition: { type: "spring", stiffness: 400, damping: 30 },
                   }}
                   className={cn(
-                    "group pointer-events-auto relative overflow-hidden rounded-3xl border border-white/10 bg-black/60 p-7 backdrop-blur-xl transition-[border-color,background-color,box-shadow] duration-500 hover:border-white/20 hover:bg-black/80 md:p-8",
+                    "group pointer-events-auto relative overflow-hidden rounded-3xl border border-white/10 bg-zinc-950/85 p-7 shadow-[0_28px_90px_rgba(0,0,0,0.38)] backdrop-blur-2xl transition-[border-color,background-color,box-shadow] duration-500 hover:border-white/20 hover:bg-zinc-950/95 md:p-8",
                     tone.glow,
                     isRestoredProject && [tone.restoreBorder, tone.restoreGlow]
                   )}
@@ -315,7 +338,7 @@ export function ProjectTree({
                     ))}
                   </div>
 
-                  <div className="relative mb-7 rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+                  <div className="relative mb-7 rounded-2xl border border-white/10 bg-black/35 p-5 shadow-inner shadow-black/20">
                     <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.28em] text-gray-500">Outcome</p>
                     <p className="text-sm leading-relaxed text-gray-300">{project.outcomes[0]}</p>
                   </div>
@@ -328,7 +351,7 @@ export function ProjectTree({
                     View Case Study <ArrowRight size={16} className="ml-2" />
                   </button>
                 </motion.article>
-              </div>
+              </ScrollRevealTile>
 
               <TimelineMarker
                 Icon={Icon}
@@ -336,17 +359,25 @@ export function ProjectTree({
                 lineClassName={tone.line}
                 iconClassName={tone.markerIcon}
                 glowClassName={tone.glow}
+                viewportRoot={viewportRoot}
+                index={idx}
+                tone={revealTone}
               />
 
-              <div
+              <ScrollRevealTile
                 className={cn(
                   "order-3 hidden self-center items-center text-sm font-bold uppercase tracking-[0.24em] text-gray-500 md:flex md:row-start-1",
                   isLeft ? "md:col-start-3 md:justify-start" : "md:col-start-1 md:justify-end"
                 )}
+                variant="chip"
+                tone={revealTone}
+                viewportRoot={viewportRoot}
+                index={idx}
+                contentClassName="flex h-full items-center"
               >
                 {project.role}
-              </div>
-            </motion.div>
+              </ScrollRevealTile>
+            </div>
           );
         })}
       </div>
@@ -364,12 +395,8 @@ export function ExperienceTimeline({
   return (
     <div className="relative space-y-8 before:absolute before:left-5 before:top-0 before:h-full before:w-px before:bg-white/10 md:space-y-10 md:before:left-1/2 md:before:-translate-x-1/2">
       {experiences.map((exp, idx) => (
-        <motion.div
+        <div
           key={exp.company + idx}
-          initial={false}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={viewportRoot ? { once: true, amount: 0.25, root: viewportRoot } : { once: true, amount: 0.25 }}
-          transition={{ duration: 0.4, delay: idx * 0.08 }}
           className="grid items-center grid-cols-[40px_minmax(0,1fr)] gap-4 md:grid-cols-[minmax(0,1fr)_88px_minmax(0,1fr)] md:gap-6"
         >
           {(() => {
@@ -379,16 +406,20 @@ export function ExperienceTimeline({
 
             return (
               <>
-                <div
+                <ScrollRevealTile
                   className={cn(
                     "order-2 self-center md:order-none md:row-start-1",
                     isLeft ? "md:col-start-1" : "md:col-start-3"
                   )}
+                  variant="timeline"
+                  tone="emerald"
+                  viewportRoot={viewportRoot}
+                  index={idx}
                 >
                   <motion.div
                     whileHover={{ scale: 1.02, y: -4 }}
                     transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                    className="pointer-events-auto rounded-2xl border border-white/10 bg-zinc-900/50 p-7 text-left backdrop-blur-sm transition-colors hover:border-white/20 hover:bg-zinc-900/70"
+                    className="pointer-events-auto rounded-2xl border border-white/10 bg-zinc-950/80 p-7 text-left shadow-[0_24px_70px_rgba(0,0,0,0.3)] backdrop-blur-md transition-colors hover:border-white/20 hover:bg-zinc-950/90"
                   >
                     <span className="mb-2 block text-xs font-bold uppercase tracking-widest text-emerald-400">
                       {exp.period}
@@ -413,7 +444,7 @@ export function ExperienceTimeline({
                       ))}
                     </div>
                   </motion.div>
-                </div>
+                </ScrollRevealTile>
 
                 <TimelineMarker
                   Icon={Icon}
@@ -421,11 +452,14 @@ export function ExperienceTimeline({
                   lineClassName={tone.line}
                   iconClassName={tone.markerIcon}
                   glowClassName={tone.glow}
+                  viewportRoot={viewportRoot}
+                  index={idx}
+                  tone="emerald"
                 />
               </>
             );
           })()}
-        </motion.div>
+        </div>
       ))}
     </div>
   );
@@ -441,13 +475,15 @@ export function EducationGrid({
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
       {education.map((entry, idx) => (
-        <motion.article
+        <ScrollRevealTile
+          as="article"
           key={entry.school}
-          initial={false}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={viewportRoot ? { once: true, amount: 0.25, root: viewportRoot } : { once: true, amount: 0.25 }}
-          transition={{ duration: 0.45, delay: idx * 0.08 }}
-          className="group relative overflow-hidden rounded-[1.75rem] border border-white/10 bg-zinc-900/45 p-7 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-emerald-400/25 hover:bg-zinc-900/[0.58] md:p-8"
+          variant="card"
+          tone="emerald"
+          viewportRoot={viewportRoot}
+          index={idx}
+          sceneAnchor={idx === 0 ? "rutgers-education" : undefined}
+          className="group relative overflow-hidden rounded-[1.75rem] border border-white/10 bg-zinc-950/80 p-7 shadow-[0_24px_70px_rgba(0,0,0,0.32)] backdrop-blur-md transition-all duration-300 hover:-translate-y-1 hover:border-emerald-400/25 hover:bg-zinc-950/90 md:p-8"
         >
           <div aria-hidden className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(16,185,129,0.12),transparent_48%)] opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
 
@@ -470,13 +506,13 @@ export function EducationGrid({
 
             <ul className="space-y-3">
               {entry.details.map((detail) => (
-                <li key={detail} className="rounded-2xl border border-white/[0.06] bg-black/20 px-4 py-3 text-sm leading-relaxed text-gray-300">
+                <li key={detail} className="rounded-2xl border border-white/[0.06] bg-black/25 px-4 py-3 text-sm leading-relaxed text-gray-300">
                   {detail}
                 </li>
               ))}
             </ul>
           </div>
-        </motion.article>
+        </ScrollRevealTile>
       ))}
     </div>
   );

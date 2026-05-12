@@ -36,6 +36,22 @@ This file is the rolling repo-update index for contributor-facing changes. Updat
 
 ### 2026-05-12
 
+- Added the cinematic homepage tile-motion contract:
+  - `src/components/HomeMotion.tsx` now owns the shared `ScrollRevealTile` primitive for one-time tile pop-ins, scroll-root-aware parallax, and reduced-motion fallback behavior
+  - homepage hero, about, skill, project, experience, education, and contact tile surfaces now use the shared reveal primitive without changing measured section order or footer scroll math
+  - card internals stay static and more opaque so text remains crisp, while the tile itself owns the reveal motion
+  - Rutgers 3D education motion is now anchored to the Rutgers education card instead of the full education section
+  - `StoryScene` and `HomeLowerScene` now use measured section progress to pulse and drift lower-scene chapters in sync with the DOM tile reveals
+  - the visible reactive/contact green bubble meshes were removed so contact and education transitions keep the 3D depth without a large teal orb covering the page
+  - `scripts/validate-portfolio.ts` checks that the reveal primitive, reduced-motion path, viewport-root support, and 3D chapter pulse hooks stay present
+
+- Added the lightweight homepage performance contract:
+  - `src/pages/Home.tsx` now detects a lightweight performance mode for compact viewports, reduced motion, low-memory/low-CPU hints, and Save-Data
+  - Canvas DPR, antialiasing, postprocessing, particle counts, pointer-following light, and ScrollControls damping now adapt for smoother up/down scrolling
+  - hero anchor measurement is passive scroll/resize-driven instead of running a layout read every animation frame
+  - `src/components/HomeMotion.tsx` now keeps reveal animations transform/opacity-only by default and releases `will-change` after tiles reveal
+  - `scripts/validate-portfolio.ts` now locks these performance contracts so expensive scroll observers, large particles, and permanent hero DOM measurement do not return accidentally
+
 - Fixed the homepage ScrollControls footer end-state by keeping Drei `pages` tied to visual content travel instead of the native hidden scroll DOM height, so max scroll ends at the compact footer.
 - Added rendered homepage scroll geometry coverage:
   - `npm run test` now also runs `scripts/validate-home-scroll-geometry.ts`

@@ -99,9 +99,51 @@ async function assertLayoutContracts() {
   );
 }
 
+async function assertHomeMotionContracts() {
+  const homeMotion = await readRepoFile("src/components/HomeMotion.tsx");
+  const home = await readRepoFile("src/pages/Home.tsx");
+  const homeSections = await readRepoFile("src/components/HomeSections.tsx");
+  const lowerScene = await readRepoFile("src/components/3d/HomeLowerScene.tsx");
+  const storyScene = await readRepoFile("src/components/3d/StoryScene.tsx");
+
+  assert(homeMotion.includes("export function ScrollRevealTile"), "ScrollRevealTile primitive must exist.");
+  assert(homeMotion.includes("useReducedMotion"), "ScrollRevealTile must keep a reduced-motion path.");
+  assert(homeMotion.includes("useScroll"), "ScrollRevealTile must use scroll-linked progress for parallax.");
+  assert(homeMotion.includes("useTransform"), "ScrollRevealTile must map scroll progress into parallax transforms.");
+  assert(homeMotion.includes("useSpring"), "ScrollRevealTile parallax should stay spring-smoothed.");
+  assert(homeMotion.includes("useInView"), "ScrollRevealTile must pop once as tiles enter the Drei viewport.");
+  assert(homeMotion.includes("data-home-reveal-tile"), "Rendered reveal tiles need a stable test/debug marker.");
+  assert(homeMotion.includes("viewportRoot"), "ScrollRevealTile must accept the Drei ScrollControls viewport root.");
+  assert(homeMotion.includes("ENABLE_SCROLL_PARALLAX = false"), "ScrollRevealTile parallax observers should stay disabled for the lightweight homepage.");
+  assert(homeMotion.includes('willChange: visible ? "auto" : "opacity, transform"'), "ScrollRevealTile must release will-change after reveal.");
+  assert(home.includes("ScrollRevealTile"), "Home must apply ScrollRevealTile to homepage surfaces.");
+  assert(homeSections.includes("ScrollRevealTile"), "Homepage section components must apply ScrollRevealTile to cards and rows.");
+  assert(home.includes("useLitePerformanceMode"), "Home must keep lightweight performance mode for smoother scrolling.");
+  assert(home.includes("damping={isLitePerformanceMode ? 0.08 : 0.14}"), "ScrollControls damping must stay responsive.");
+  assert(home.includes('scrollViewport.addEventListener("scroll", scheduleHeroStateMeasure, { passive: true })'), "Hero DOM measurement must be scroll-driven, not a permanent frame loop.");
+  assert(home.includes("rutgers-education"), "Rutgers education 3D scene range must be measured from the Rutgers tile.");
+  assert(home.includes("viewportHeight * 1.05"), "Rutgers education scene must start before the Rutgers tile reaches the center gap.");
+  assert(home.includes("contact-panel"), "Contact 3D scene must be anchored to the contact panel.");
+  assert(home.includes("viewportHeight * 0.08"), "Contact 3D scene must not fade in until the contact panel enters the viewport.");
+  assert(homeSections.includes('sceneAnchor={idx === 0 ? "rutgers-education" : undefined}'), "Rutgers education tile must expose a scene anchor.");
+  assert(lowerScene.includes("rutgersCardExit"), "Rutgers education scene must fade before the next education card.");
+  assert(lowerScene.includes("ranges.contact, 0.022"), "Contact bubble fade must stay tight to the contact range.");
+  assert(!lowerScene.includes("sphereGeometry args={[1.34, 40, 40]}"), "Contact scene must not render the large green bubble.");
+  assert(!lowerScene.includes("sphereGeometry args={[1, 24, 24]}"), "Contact scene must not render the green bubble core.");
+  assert(!storyScene.includes("sphereGeometry args={[5, 64, 64]}"), "ReactiveLight must not render a visible green bubble.");
+  assert(storyScene.includes("ScenePostEffects({ liteMode }"), "Postprocessing must be disabled in lightweight mode.");
+  assert(storyScene.includes("count={liteMode ? 1200 : 2800}"), "Starfield count must stay bounded for lightweight scrolling.");
+  assert(storyScene.includes("!liteMode && <ReactiveLight />"), "Pointer-following light should not run in lightweight mode.");
+  assert(lowerScene.includes("useSceneProfile(liteMode)"), "Lower 3D scene must use the lightweight profile.");
+  assert(lowerScene.includes("!liteMode && <ContactTaper"), "Contact particles should not render in lightweight mode.");
+  assert(lowerScene.includes("getChapterArrivalPulse"), "HomeLowerScene must keep chapter arrival pulse animation tied to section progress.");
+  assert(storyScene.includes("getStoryChapterPulse"), "StoryScene must keep camera motion synced to section arrival pulses.");
+}
+
 async function main() {
   assertPortfolioData();
   await assertLayoutContracts();
+  await assertHomeMotionContracts();
   await assertFileExists("public/archive/previous-site/index.html");
   console.log("Portfolio regression checks passed.");
 }

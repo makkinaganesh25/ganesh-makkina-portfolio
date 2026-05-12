@@ -146,7 +146,13 @@ function OrchestrationNodes({ introProgress }: { introProgress: MotionValue<numb
   );
 }
 
-function IntelligenceHub({ introProgress }: { introProgress: MotionValue<number> }) {
+function IntelligenceHub({
+  introProgress,
+  liteMode = false,
+}: {
+  introProgress: MotionValue<number>;
+  liteMode?: boolean;
+}) {
   const hubRef = useRef<THREE.Group>(null!);
   const shellRef = useRef<THREE.Mesh>(null!);
   const glowRef = useRef<THREE.Mesh>(null!);
@@ -170,17 +176,17 @@ function IntelligenceHub({ introProgress }: { introProgress: MotionValue<number>
 
   return (
     <group ref={hubRef}>
-      <pointLight ref={lightRef} color="#10b981" intensity={4.6} distance={18} decay={2} />
+      <pointLight ref={lightRef} color="#10b981" intensity={liteMode ? 3.2 : 4.6} distance={18} decay={2} />
       <mesh ref={shellRef}>
-        <sphereGeometry args={[0.64, 48, 48]} />
+        <sphereGeometry args={[0.64, liteMode ? 24 : 48, liteMode ? 24 : 48]} />
         <meshBasicMaterial color="#34d399" transparent opacity={0.04} />
       </mesh>
       <mesh ref={glowRef} position={[0, -0.05, -0.2]}>
-        <sphereGeometry args={[0.84, 40, 40]} />
+        <sphereGeometry args={[0.84, liteMode ? 20 : 40, liteMode ? 20 : 40]} />
         <meshBasicMaterial color="#10b981" transparent opacity={0.08} />
       </mesh>
       <mesh ref={ringRef} rotation={[Math.PI / 2.35, 0.18, 0.08]}>
-        <torusGeometry args={[0.92, 0.012, 18, 180]} />
+        <torusGeometry args={[0.92, 0.012, liteMode ? 10 : 18, liteMode ? 72 : 180]} />
         <meshBasicMaterial color="#a7f3d0" transparent opacity={0.1} />
       </mesh>
     </group>
@@ -190,9 +196,11 @@ function IntelligenceHub({ introProgress }: { introProgress: MotionValue<number>
 export function HeroScene({
   heroAnchor,
   heroIntroProgress,
+  liteMode = false,
 }: {
   heroAnchor: HeroAnchor;
   heroIntroProgress: MotionValue<number>;
+  liteMode?: boolean;
 }) {
   const { camera } = useThree();
   const rootRef = useRef<THREE.Group>(null!);
@@ -221,9 +229,9 @@ export function HeroScene({
 
   return (
     <group ref={rootRef}>
-      <IntelligenceHub introProgress={heroIntroProgress} />
-      <TransformationRings introProgress={heroIntroProgress} />
-      <OrchestrationNodes introProgress={heroIntroProgress} />
+      <IntelligenceHub introProgress={heroIntroProgress} liteMode={liteMode} />
+      {!liteMode && <TransformationRings introProgress={heroIntroProgress} />}
+      {!liteMode && <OrchestrationNodes introProgress={heroIntroProgress} />}
 
       <DataStream
         radius={1.92}
@@ -231,20 +239,20 @@ export function HeroScene({
         color="#3b82f6"
         yOffset={0.36}
         introProgress={heroIntroProgress}
-        trailWidth={2.55}
-        trailLength={11}
+        trailWidth={liteMode ? 1.8 : 2.55}
+        trailLength={liteMode ? 6 : 11}
       />
       <DataStream
-        radius={2.88}
+        radius={liteMode ? 2.72 : 2.88}
         speed={-0.78}
-        color="#8b5cf6"
+        color={liteMode ? "#10b981" : "#8b5cf6"}
         yOffset={0.02}
         introProgress={heroIntroProgress}
-        trailWidth={1.8}
-        trailLength={8}
+        trailWidth={liteMode ? 1.35 : 1.8}
+        trailLength={liteMode ? 5 : 8}
       />
-      <DataStream radius={3.42} speed={0.48} color="#f59e0b" yOffset={0.72} introProgress={heroIntroProgress} />
-      <DataStream radius={4.25} speed={1.32} color="#10b981" yOffset={-0.28} introProgress={heroIntroProgress} />
+      {!liteMode && <DataStream radius={3.42} speed={0.48} color="#f59e0b" yOffset={0.72} introProgress={heroIntroProgress} />}
+      {!liteMode && <DataStream radius={4.25} speed={1.32} color="#10b981" yOffset={-0.28} introProgress={heroIntroProgress} />}
     </group>
   );
 }

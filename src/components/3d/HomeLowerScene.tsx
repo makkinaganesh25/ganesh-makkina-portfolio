@@ -68,6 +68,16 @@ function getRangePresence(offset: number, range: SectionRange, feather = 0.08) {
   return clamp01(fadeIn * fadeOut);
 }
 
+function getRangeProgress(offset: number, range: SectionRange) {
+  return clamp01((offset - range.start) / Math.max(0.0001, range.end - range.start));
+}
+
+function getChapterArrivalPulse(progress: number) {
+  const pulseIn = THREE.MathUtils.smoothstep(progress, 0.02, 0.22);
+  const pulseOut = 1 - THREE.MathUtils.smoothstep(progress, 0.3, 0.62);
+  return clamp01(pulseIn * pulseOut);
+}
+
 function getRangeDepth(range: SectionRange, bias = 0) {
   return -((range.start + range.end) / 2) * 160 + bias;
 }
@@ -230,12 +240,12 @@ function useReducedMotionPreference() {
   return reducedMotion;
 }
 
-function useSceneProfile() {
+function useSceneProfile(forceLite = false) {
   const { size } = useThree();
   const reducedMotion = useReducedMotionPreference();
 
   return useMemo(() => {
-    const simplified = reducedMotion || size.width < homeSceneTuning.mobileBreakpoint;
+    const simplified = forceLite || reducedMotion || size.width < homeSceneTuning.mobileBreakpoint;
     const tablet = !simplified && size.width < homeSceneTuning.tabletBreakpoint;
 
     return {
@@ -254,7 +264,7 @@ function useSceneProfile() {
       simplified,
       tablet,
     };
-  }, [reducedMotion, size.width]);
+  }, [forceLite, reducedMotion, size.width]);
 }
 
 function LabelSprite({
@@ -670,27 +680,34 @@ function ProjectsDataCosmos({
 
   useFrame((state) => {
     const elapsed = state.clock.getElapsedTime();
+    const progress = getRangeProgress(scroll.offset, ranges.projects);
     const presence = getRangePresence(scroll.offset, ranges.projects, 0.055);
+    const arrivalPulse = getChapterArrivalPulse(progress);
     const calm = THREE.MathUtils.smoothstep(
       scroll.offset,
       Math.max(0, ranges.contact.start - 0.1),
       Math.min(1, ranges.contact.start + 0.02)
     );
-    const alpha = presence * (1 - calm * 0.82);
+    const alpha = clamp01(presence * (0.98 + arrivalPulse * 0.24)) * (1 - calm * 0.82);
 
-    // Provide a consistent "rise from bottom and deep space" entrance
-    const yEntrance = -(1 - presence) * 8;
-    const zEntrance = -(1 - presence) * 6;
+    const xDrift = Math.sin(progress * Math.PI * 1.7 + elapsed * 0.08) * presence * 0.5;
+    const yEntrance = -(1 - presence) * 10 + Math.sin(progress * Math.PI) * presence * 0.36 + arrivalPulse * 0.85;
+    const zEntrance = -(1 - presence) * 10 - arrivalPulse * 1.6;
 
     rootRef.current.visible = alpha > 0.01;
-    rootRef.current.position.set(focusX, focusY + yEntrance, anchorZ + focusZ + zEntrance);
-    rootRef.current.rotation.x = THREE.MathUtils.lerp(rootRef.current.rotation.x, -0.06, 0.04);
+    rootRef.current.position.set(focusX + xDrift, focusY + yEntrance, anchorZ + focusZ + zEntrance);
+    rootRef.current.rotation.x = THREE.MathUtils.lerp(rootRef.current.rotation.x, -0.075 + arrivalPulse * 0.025, 0.04);
     rootRef.current.rotation.y = THREE.MathUtils.lerp(
       rootRef.current.rotation.y,
-      Math.sin(elapsed * 0.06) * 0.035,
+      Math.sin(elapsed * 0.06) * 0.035 + Math.sin(progress * Math.PI * 2) * presence * 0.045,
       0.04
     );
-    rootRef.current.scale.setScalar(0.95 + presence * 0.05);
+    rootRef.current.rotation.z = THREE.MathUtils.lerp(
+      rootRef.current.rotation.z,
+      Math.sin(progress * Math.PI * 1.2) * presence * -0.035,
+      0.04
+    );
+    rootRef.current.scale.setScalar(0.91 + presence * 0.09 + arrivalPulse * 0.055);
 
     setRegisteredOpacity(sceneMaterials.current, alpha);
     setRegisteredOpacity(uiMaterials.current, alpha * 0.92);
@@ -865,27 +882,34 @@ function ExperienceSystemsField({
 
   useFrame((state) => {
     const elapsed = state.clock.getElapsedTime();
+    const progress = getRangeProgress(scroll.offset, ranges.experience);
     const presence = getRangePresence(scroll.offset, ranges.experience, 0.055);
+    const arrivalPulse = getChapterArrivalPulse(progress);
     const calm = THREE.MathUtils.smoothstep(
       scroll.offset,
       Math.max(0, ranges.contact.start - 0.08),
       Math.min(1, ranges.contact.start + 0.02)
     );
-    const alpha = presence * (1 - calm * 0.72);
+    const alpha = clamp01(presence * (0.96 + arrivalPulse * 0.2)) * (1 - calm * 0.72);
 
-    // Provide a consistent "rise from bottom and deep space" entrance
-    const yEntrance = -(1 - presence) * 8;
-    const zEntrance = -(1 - presence) * 6;
+    const xDrift = Math.cos(progress * Math.PI * 1.45 + elapsed * 0.06) * presence * 0.42;
+    const yEntrance = -(1 - presence) * 9 + Math.sin(progress * Math.PI) * presence * 0.28 + arrivalPulse * 0.7;
+    const zEntrance = -(1 - presence) * 9 - arrivalPulse * 1.25;
 
     rootRef.current.visible = alpha > 0.01;
-    rootRef.current.position.set(focusX, focusY + yEntrance, anchorZ + focusZ + zEntrance);
-    rootRef.current.rotation.x = THREE.MathUtils.lerp(rootRef.current.rotation.x, -0.04, 0.04);
+    rootRef.current.position.set(focusX + xDrift, focusY + yEntrance, anchorZ + focusZ + zEntrance);
+    rootRef.current.rotation.x = THREE.MathUtils.lerp(rootRef.current.rotation.x, -0.052 + arrivalPulse * 0.018, 0.04);
     rootRef.current.rotation.y = THREE.MathUtils.lerp(
       rootRef.current.rotation.y,
-      Math.sin(elapsed * 0.04) * 0.028,
+      Math.sin(elapsed * 0.04) * 0.028 + Math.sin(progress * Math.PI * 2) * presence * 0.035,
       0.04
     );
-    rootRef.current.scale.setScalar(0.97 + presence * 0.035);
+    rootRef.current.rotation.z = THREE.MathUtils.lerp(
+      rootRef.current.rotation.z,
+      Math.cos(progress * Math.PI * 1.15) * presence * 0.028,
+      0.04
+    );
+    rootRef.current.scale.setScalar(0.93 + presence * 0.07 + arrivalPulse * 0.045);
 
     setRegisteredOpacity(sceneMaterials.current, alpha);
     setRegisteredOpacity(uiMaterials.current, alpha * 0.9);
@@ -1233,38 +1257,45 @@ function RutgersEducationScene({
 
   useFrame((state) => {
     const elapsed = state.clock.getElapsedTime();
-    const rangeSpan = Math.max(0.0001, ranges.education.end - ranges.education.start);
-    const progress = clamp01((scroll.offset - ranges.education.start) / rangeSpan);
-    const presence = getRangePresence(scroll.offset, ranges.education, 0.055);
+    const progress = getRangeProgress(scroll.offset, ranges.education);
+    const presence = getRangePresence(scroll.offset, ranges.education, 0.018);
+    const arrivalPulse = getChapterArrivalPulse(progress);
+    const rutgersCardExit = 1 - THREE.MathUtils.smoothstep(progress, 0.76, 0.96);
     const calm = THREE.MathUtils.smoothstep(
       scroll.offset,
       Math.max(0, ranges.contact.start - 0.08),
       Math.min(1, ranges.contact.start + 0.02)
     );
-    const alpha = presence * (1 - calm * 0.72);
-    const flightProgress = THREE.MathUtils.smoothstep(progress, 0.02, 0.9);
-    const shipExit = THREE.MathUtils.smoothstep(progress, 0.82, 1);
+    const alpha = clamp01(presence * (0.96 + arrivalPulse * 0.22)) * rutgersCardExit * (1 - calm * 0.72);
+    const flightProgress = THREE.MathUtils.smoothstep(progress, 0.02, 0.36);
+    const shipExit = THREE.MathUtils.smoothstep(progress, 0.72, 0.98);
 
-    const yEntrance = -(1 - presence) * 7;
-    const zEntrance = -(1 - presence) * 5;
+    const xDrift = Math.sin(progress * Math.PI * 1.35 + elapsed * 0.05) * presence * 0.38;
+    const yEntrance = -(1 - presence) * 9 + Math.sin(progress * Math.PI) * presence * 0.32 + arrivalPulse * 0.72;
+    const zEntrance = -(1 - presence) * 8 - arrivalPulse * 1.4;
 
     rootRef.current.visible = alpha > 0.01;
-    rootRef.current.position.set(focusX, focusY + yEntrance, anchorZ + focusZ + zEntrance);
-    rootRef.current.rotation.x = THREE.MathUtils.lerp(rootRef.current.rotation.x, -0.05, 0.04);
+    rootRef.current.position.set(focusX + xDrift, focusY + yEntrance + 0.18, anchorZ + focusZ + zEntrance);
+    rootRef.current.rotation.x = THREE.MathUtils.lerp(rootRef.current.rotation.x, -0.06 + arrivalPulse * 0.02, 0.04);
     rootRef.current.rotation.y = THREE.MathUtils.lerp(
       rootRef.current.rotation.y,
-      Math.sin(elapsed * 0.05) * 0.03,
+      Math.sin(elapsed * 0.05) * 0.03 + Math.sin(progress * Math.PI * 2) * presence * 0.032,
       0.04
     );
-    rootRef.current.scale.setScalar(0.96 + presence * 0.04);
+    rootRef.current.rotation.z = THREE.MathUtils.lerp(
+      rootRef.current.rotation.z,
+      Math.sin(progress * Math.PI * 1.1) * presence * -0.026,
+      0.04
+    );
+    rootRef.current.scale.setScalar(1.04 + presence * 0.18 + arrivalPulse * 0.08);
 
-    const shipScaleBase = profile.simplified ? 0.6 : profile.tablet ? 0.75 : 0.95;
+    const shipScaleBase = profile.simplified ? 0.72 : profile.tablet ? 1.0 : 1.22;
     
     // Centered Inter-Tile Flyover: perfectly bisects the cards vertically
     shipRef.current.position.set(
       shipOffsetX + THREE.MathUtils.lerp(0.0, 0.0, flightProgress),
-      shipOffsetY + THREE.MathUtils.lerp(-1.0, 0.0, flightProgress),
-      shipOffsetZ + THREE.MathUtils.lerp(-40.0, 15.0, flightProgress)
+      shipOffsetY + THREE.MathUtils.lerp(-0.22, 0.12, flightProgress),
+      shipOffsetZ + THREE.MathUtils.lerp(-13.0, 2.6, flightProgress)
     );
     // Dynamic pitch so the craft remains sleek and horizontal as it shoots through the gap
     shipRef.current.rotation.x = THREE.MathUtils.lerp(
@@ -1286,7 +1317,7 @@ function RutgersEducationScene({
     );
     
     // Controlled Expansion: Fits massive power into the precise gap between the layout cards
-    shipRef.current.scale.setScalar(shipScaleBase * (1.0 + flightProgress * 0.6 - shipExit * 0.2));
+    shipRef.current.scale.setScalar(shipScaleBase * (1.0 + flightProgress * 0.28 - shipExit * 0.18 + arrivalPulse * 0.08));
 
     setRegisteredOpacity(sceneMaterials.current, alpha);
 
@@ -1406,25 +1437,28 @@ function ContactTaper({
 
   useFrame((state) => {
     const elapsed = state.clock.getElapsedTime();
-    const presence = getRangePresence(scroll.offset, ranges.contact, 0.075);
+    const progress = getRangeProgress(scroll.offset, ranges.contact);
+    const presence = getRangePresence(scroll.offset, ranges.contact, 0.022);
+    const arrivalPulse = getChapterArrivalPulse(progress);
     const footerFade = THREE.MathUtils.smoothstep(
       scroll.offset,
       Math.max(0, ranges.contact.end - 0.06),
       Math.min(1, ranges.contact.end + 0.05)
     );
-    const alpha = presence * (0.78 - footerFade * 0.18);
+    const alpha = clamp01(presence * (0.74 + arrivalPulse * 0.18)) * (1 - footerFade * 0.24);
 
-    // Provide a consistent "rise from bottom" entrance
-    const yEntrance = -(1 - presence) * 8;
-    const zEntrance = -(1 - presence) * 4;
+    const xDrift = Math.sin(progress * Math.PI * 1.2 + elapsed * 0.04) * presence * 0.24;
+    const yEntrance = -(1 - presence) * 8 + Math.sin(progress * Math.PI) * presence * 0.18 + arrivalPulse * 0.45;
+    const zEntrance = -(1 - presence) * 6 - arrivalPulse * 0.9;
 
     rootRef.current.visible = alpha > 0.01;
-    rootRef.current.position.set(focusX, focusY + yEntrance, anchorZ + focusZ + zEntrance);
+    rootRef.current.position.set(focusX + xDrift, focusY + yEntrance, anchorZ + focusZ + zEntrance);
     rootRef.current.rotation.y = THREE.MathUtils.lerp(
       rootRef.current.rotation.y,
-      Math.sin(elapsed * 0.03) * 0.02,
+      Math.sin(elapsed * 0.03) * 0.02 + Math.sin(progress * Math.PI * 2) * presence * 0.018,
       0.04
     );
+    rootRef.current.scale.setScalar(0.9 + presence * 0.09 + arrivalPulse * 0.035);
 
     setRegisteredOpacity(sceneMaterials.current, alpha);
 
@@ -1446,32 +1480,6 @@ function ContactTaper({
 
   return (
     <group ref={rootRef}>
-      <mesh>
-        <sphereGeometry args={[1.34, 40, 40]} />
-        <meshPhysicalMaterial
-          ref={registerSceneMaterial}
-          color="#34d399"
-          transmission={0.58}
-          ior={1.22}
-          thickness={0.8}
-          roughness={0.08}
-          transparent
-          opacity={0.1}
-        />
-      </mesh>
-
-      <mesh scale={0.35}>
-        <sphereGeometry args={[1, 24, 24]} />
-        <meshBasicMaterial
-          ref={registerSceneMaterial}
-          color="#34d399"
-          transparent
-          opacity={0.55}
-          depthWrite={false}
-          toneMapped={false}
-        />
-      </mesh>
-
       <mesh rotation={[Math.PI / 2.55, 0.18, 0]}>
         <torusGeometry args={[2.05, 0.018, 16, 100]} />
         <meshBasicMaterial
@@ -1504,15 +1512,21 @@ function ContactTaper({
   );
 }
 
-export function HomeLowerScene({ sectionRanges }: { sectionRanges: HomeSceneRanges }) {
-  const profile = useSceneProfile();
+export function HomeLowerScene({
+  sectionRanges,
+  liteMode = false,
+}: {
+  sectionRanges: HomeSceneRanges;
+  liteMode?: boolean;
+}) {
+  const profile = useSceneProfile(liteMode);
 
   return (
     <>
       <ProjectsDataCosmos ranges={sectionRanges} profile={profile} />
       <ExperienceSystemsField ranges={sectionRanges} profile={profile} />
       <RutgersEducationScene ranges={sectionRanges} profile={profile} />
-      <ContactTaper ranges={sectionRanges} profile={profile} />
+      {!liteMode && <ContactTaper ranges={sectionRanges} profile={profile} />}
     </>
   );
 }

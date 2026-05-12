@@ -12,19 +12,21 @@ import { HomeLowerScene } from "./HomeLowerScene";
 import { EffectComposer, Bloom, ChromaticAberration } from "@react-three/postprocessing";
 import { BlendFunction } from "postprocessing";
 import type { MotionValue } from "motion/react";
-import type { HomeSceneRanges } from "../../data/homeSceneData";
+import type { HomeSceneRanges, SectionRange } from "../../data/homeSceneData";
 
 interface HeroAnchor {
   x: MotionValue<number>;
   y: MotionValue<number>;
 }
 
-function ScenePostEffects() {
+function ScenePostEffects({ liteMode }: { liteMode: boolean }) {
   const chromaticOffset = useMemo(() => new THREE.Vector2(0.00018, 0.00018), []);
+
+  if (liteMode) return null;
 
   return (
     <EffectComposer>
-      <Bloom luminanceThreshold={0.26} luminanceSmoothing={0.9} height={300} intensity={1.08} />
+      <Bloom luminanceThreshold={0.28} luminanceSmoothing={0.9} height={220} intensity={0.78} />
       <ChromaticAberration offset={chromaticOffset} blendFunction={BlendFunction.NORMAL} />
     </EffectComposer>
   );
@@ -54,10 +56,6 @@ function ReactiveLight() {
     <group position={[0, 0, -170]}>
       <group ref={lightRef}>
         <pointLight color="#0d9488" intensity={50} distance={80} decay={2} />
-        <mesh>
-          <sphereGeometry args={[5, 64, 64]} />
-          <meshBasicMaterial color="#0d9488" />
-        </mesh>
       </group>
     </group>
   );
@@ -77,14 +75,36 @@ function ndcToWorldAtZ(
   return target;
 }
 
+function getSectionProgress(offset: number, range: SectionRange) {
+  return THREE.MathUtils.clamp((offset - range.start) / Math.max(0.0001, range.end - range.start), 0, 1);
+}
+
+function getSectionArrivalPulse(offset: number, range: SectionRange) {
+  const progress = getSectionProgress(offset, range);
+  const pulseIn = THREE.MathUtils.smoothstep(progress, 0.02, 0.22);
+  const pulseOut = 1 - THREE.MathUtils.smoothstep(progress, 0.3, 0.62);
+  return THREE.MathUtils.clamp(pulseIn * pulseOut, 0, 1);
+}
+
+function getStoryChapterPulse(offset: number, ranges: HomeSceneRanges) {
+  return Math.max(
+    getSectionArrivalPulse(offset, ranges.projects),
+    getSectionArrivalPulse(offset, ranges.experience),
+    getSectionArrivalPulse(offset, ranges.education),
+    getSectionArrivalPulse(offset, ranges.contact)
+  );
+}
+
 export function StoryScene({
   heroAnchor,
   heroIntroProgress,
   sectionRanges,
+  liteMode = false,
 }: {
   heroAnchor: HeroAnchor;
   heroIntroProgress: MotionValue<number>;
   sectionRanges: HomeSceneRanges;
+  liteMode?: boolean;
 }) {
   const scroll = useScroll();
   const { camera } = useThree();
@@ -96,7 +116,8 @@ export function StoryScene({
     const introProgress = heroIntroProgress.get();
     const heroReset = introProgress <= 0.02;
     const effectiveOffset = heroReset ? 0 : offset;
-    const targetZ = -effectiveOffset * 160;
+    const chapterPulse = heroReset ? 0 : getStoryChapterPulse(offset, sectionRanges);
+    const targetZ = -effectiveOffset * 164 - chapterPulse * 2.8;
     const heroLock = heroReset ? 1 : 1 - THREE.MathUtils.smoothstep(introProgress, 0.72, 0.96);
     const heroDepth = heroReset ? 0 : THREE.MathUtils.smoothstep(introProgress, 0.04, 0.78);
     const cameraLerp = heroReset ? 0.16 : 0.05;
@@ -117,8 +138,14 @@ export function StoryScene({
     const mouseY = state.pointer.y;
     const heroCameraX = 0;
     const heroCameraY = 0;
-    const storyCameraX = Math.sin(effectiveOffset * Math.PI * 2) * 1.2 + mouseX * 1.5;
-    const storyCameraY = Math.cos(effectiveOffset * Math.PI * 2) * 0.6 + mouseY * 1.5;
+    const storyCameraX =
+      Math.sin(effectiveOffset * Math.PI * 2) * (1.15 + chapterPulse * 0.28) +
+      Math.sin(effectiveOffset * Math.PI * 7) * chapterPulse * 0.42 +
+      mouseX * (1.45 + chapterPulse * 0.22);
+    const storyCameraY =
+      Math.cos(effectiveOffset * Math.PI * 2) * 0.58 +
+      chapterPulse * 0.32 +
+      mouseY * (1.45 + chapterPulse * 0.18);
 
     camera.position.x = THREE.MathUtils.lerp(
       camera.position.x,
@@ -131,12 +158,14 @@ export function StoryScene({
       cameraLerp
     );
 
-    const lookAtZ = targetZ - 20;
+    const lookAtZ = targetZ - 20 - chapterPulse * 2.2;
     const lookAtX = THREE.MathUtils.lerp(camera.position.x * 0.16, heroAnchorRef.current.x * 0.2, heroLock);
     const lookAtY = THREE.MathUtils.lerp(camera.position.y * 0.16, heroAnchorRef.current.y * 0.26, heroLock);
     camera.lookAt(lookAtX, lookAtY, lookAtZ);
 
-    const storyRoll = Math.sin(effectiveOffset * Math.PI * 0.8) * 0.015;
+    const storyRoll =
+      Math.sin(effectiveOffset * Math.PI * 0.8) * 0.015 +
+      Math.sin(effectiveOffset * Math.PI * 3.2) * chapterPulse * 0.012;
     group.current.rotation.z = THREE.MathUtils.lerp(
       group.current.rotation.z,
       THREE.MathUtils.lerp(storyRoll, 0, heroLock),
@@ -147,29 +176,31 @@ export function StoryScene({
   return (
     <>
       <fog attach="fog" args={["#000000", 8, 45]} />
-      <Stars radius={50} depth={150} count={5000} factor={4} saturation={0} fade speed={1.5} />
-      <Sparkles count={1500} scale={[40, 40, 150]} position={[0, 0, -75]} size={2} speed={0.2} opacity={0.15} color="#10b981" />
+      <Stars radius={50} depth={150} count={liteMode ? 1200 : 2800} factor={4} saturation={0} fade speed={liteMode ? 0.5 : 1.1} />
+      {!liteMode && (
+        <Sparkles count={620} scale={[40, 40, 150]} position={[0, 0, -75]} size={1.7} speed={0.16} opacity={0.1} color="#10b981" />
+      )}
 
       <group ref={group}>
         <group position={[0, 0, 0]}>
-          <HeroScene heroAnchor={heroAnchor} heroIntroProgress={heroIntroProgress} />
+          <HeroScene heroAnchor={heroAnchor} heroIntroProgress={heroIntroProgress} liteMode={liteMode} />
         </group>
 
-        <group position={[5, 0, -40]}>
+        {!liteMode && <group position={[5, 0, -40]}>
           <Float speed={2} rotationIntensity={2} floatIntensity={2}>
             <mesh>
               <icosahedronGeometry args={[3, 1]} />
               <meshStandardMaterial color="#10b981" wireframe transparent opacity={0.14} />
             </mesh>
           </Float>
-        </group>
+        </group>}
 
-        <HomeLowerScene sectionRanges={sectionRanges} />
+        <HomeLowerScene sectionRanges={sectionRanges} liteMode={liteMode} />
 
-        <ReactiveLight />
+        {!liteMode && <ReactiveLight />}
       </group>
 
-      <ScenePostEffects />
+      <ScenePostEffects liteMode={liteMode} />
     </>
   );
 }

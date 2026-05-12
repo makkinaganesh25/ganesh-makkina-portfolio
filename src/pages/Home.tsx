@@ -12,9 +12,10 @@ import { SceneLights } from "../components/3d/Common";
 import { StoryScene } from "../components/3d/StoryScene";
 import { Layout, Footer } from "../components/Layout";
 import { SkillsGrid, ExperienceTimeline, ProjectTree, EducationGrid } from "../components/HomeSections";
+import { ScrollRevealTile, type ScrollRevealTone } from "../components/HomeMotion";
 import { useLocation, useNavigate, useNavigationType, useParams, Navigate } from "react-router-dom";
 import { Component, useEffect, useMemo, useState, useRef, type ErrorInfo, type ReactNode, type RefObject } from "react";
-import { motion, useIsPresent, useMotionValue } from "motion/react";
+import { useIsPresent, useMotionValue } from "motion/react";
 import { getEmailComposeUrl } from "../utils/contact";
 import { withBasePath } from "../utils/publicAsset";
 import { getProfileHomePath, getProfileProjectPath } from "../utils/profileRoutes";
@@ -38,6 +39,13 @@ const HOME_NAV_ANCHOR_BUFFER_PX = 18;
 // Let final hash targets clamp to the footer end instead of waiting for impossible overscroll.
 const HOME_HASH_END_CLAMP_TOLERANCE_PX = 192;
 export const HOME_NAV_SCROLL_REQUEST_EVENT = "portfolio-home-nav-request";
+
+type NavigatorPerformanceHints = Navigator & {
+  deviceMemory?: number;
+  connection?: {
+    saveData?: boolean;
+  };
+};
 
 function isHomeHashSectionId(value: string): value is HomeHashSectionId {
   return HOME_HASH_SECTION_IDS.includes(value as HomeHashSectionId);
@@ -98,6 +106,22 @@ function getCanvasVisualTopForNativeScroll(nativeTop: number, pages: number, scr
   return clamp01(nativeTop / nativeMaxScroll) * visualMaxScroll;
 }
 
+function getElementOffsetTopWithinContainer(element: HTMLElement, container: HTMLElement) {
+  let top = 0;
+  let current: HTMLElement | null = element;
+
+  while (current && current !== container) {
+    top += current.offsetTop;
+    const parent = current.offsetParent;
+    if (!(parent instanceof HTMLElement) || !container.contains(parent)) {
+      return element.getBoundingClientRect().top - container.getBoundingClientRect().top;
+    }
+    current = parent;
+  }
+
+  return top;
+}
+
 function SectionNavAnchor({ sectionId }: { sectionId: HomeHashSectionId }) {
   return <div aria-hidden data-home-nav-anchor={sectionId} className="pointer-events-none h-0 w-full" />;
 }
@@ -129,15 +153,36 @@ function getHomeAnchorTopWithinContainer(anchor: HTMLElement, container: HTMLEle
 function measureSceneSectionRange(
   container: HTMLElement,
   maxVisualScroll: number,
+  viewportHeight: number,
   sectionName: "projects" | "experience" | "education" | "contact",
   fallback: SectionRange
 ) {
   const section = container.querySelector<HTMLElement>(`[data-home-scroll-section="${sectionName}"]`);
   if (!section) return fallback;
+  const sceneTarget =
+    sectionName === "education"
+      ? container.querySelector<HTMLElement>('[data-home-scene-anchor="rutgers-education"]') ?? section
+      : sectionName === "contact"
+        ? container.querySelector<HTMLElement>('[data-home-scene-anchor="contact-panel"]') ?? section
+      : section;
 
   const maxScroll = Math.max(1, maxVisualScroll);
-  const start = clamp01(section.offsetTop / maxScroll);
-  const end = clamp01((section.offsetTop + section.offsetHeight) / maxScroll);
+  const targetTop = sceneTarget === section ? section.offsetTop : getElementOffsetTopWithinContainer(sceneTarget, container);
+  const targetHeight = sceneTarget.offsetHeight;
+  const startPx =
+    sectionName === "education" && sceneTarget !== section
+      ? targetTop - viewportHeight * 1.05
+      : sectionName === "contact" && sceneTarget !== section
+        ? targetTop + viewportHeight * 0.08
+      : targetTop;
+  const endPx =
+    sectionName === "education" && sceneTarget !== section
+      ? targetTop + targetHeight * 0.72
+      : sectionName === "contact" && sceneTarget !== section
+        ? targetTop + targetHeight * 0.9
+      : targetTop + targetHeight;
+  const start = clamp01(startPx / maxScroll);
+  const end = clamp01(endPx / maxScroll);
 
   if (end <= start) return fallback;
   return { start, end };
@@ -148,10 +193,10 @@ function measureHomeSceneRanges(container: HTMLElement, scrollViewport: HTMLDivE
   const maxVisualScroll = getCanvasVisualScrollRange(pages, viewportHeight);
 
   return {
-    projects: measureSceneSectionRange(container, maxVisualScroll, "projects", defaultHomeSceneRanges.projects),
-    experience: measureSceneSectionRange(container, maxVisualScroll, "experience", defaultHomeSceneRanges.experience),
-    education: measureSceneSectionRange(container, maxVisualScroll, "education", defaultHomeSceneRanges.education),
-    contact: measureSceneSectionRange(container, maxVisualScroll, "contact", defaultHomeSceneRanges.contact),
+    projects: measureSceneSectionRange(container, maxVisualScroll, viewportHeight, "projects", defaultHomeSceneRanges.projects),
+    experience: measureSceneSectionRange(container, maxVisualScroll, viewportHeight, "experience", defaultHomeSceneRanges.experience),
+    education: measureSceneSectionRange(container, maxVisualScroll, viewportHeight, "education", defaultHomeSceneRanges.education),
+    contact: measureSceneSectionRange(container, maxVisualScroll, viewportHeight, "contact", defaultHomeSceneRanges.contact),
   };
 }
 
@@ -192,6 +237,47 @@ function isWebGLFailureMessage(message: string | undefined) {
   return /webgl context|webglrenderer|error creating webgl context/i.test(message);
 }
 
+function readLitePerformanceMode() {
+  if (typeof window === "undefined") return false;
+
+  const nav = navigator as NavigatorPerformanceHints;
+  const lowMemory = typeof nav.deviceMemory === "number" && nav.deviceMemory <= 4;
+  const lowCpu = typeof navigator.hardwareConcurrency === "number" && navigator.hardwareConcurrency <= 4;
+  const saveData = Boolean(nav.connection?.saveData);
+
+  return (
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches ||
+    window.matchMedia("(max-width: 1100px)").matches ||
+    lowMemory ||
+    lowCpu ||
+    saveData
+  );
+}
+
+function useLitePerformanceMode() {
+  const [isLitePerformanceMode, setIsLitePerformanceMode] = useState(readLitePerformanceMode);
+
+  useEffect(() => {
+    const reducedMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const compactViewportQuery = window.matchMedia("(max-width: 1100px)");
+
+    const syncPerformanceMode = () => {
+      setIsLitePerformanceMode(readLitePerformanceMode());
+    };
+
+    syncPerformanceMode();
+    reducedMotionQuery.addEventListener("change", syncPerformanceMode);
+    compactViewportQuery.addEventListener("change", syncPerformanceMode);
+
+    return () => {
+      reducedMotionQuery.removeEventListener("change", syncPerformanceMode);
+      compactViewportQuery.removeEventListener("change", syncPerformanceMode);
+    };
+  }, []);
+
+  return isLitePerformanceMode;
+}
+
 interface CanvasErrorBoundaryProps {
   children: ReactNode;
   onError: (error: Error, errorInfo: ErrorInfo) => void;
@@ -227,21 +313,22 @@ function AnimatedSectionIntro({
   children,
   className,
   motionViewportRoot,
+  tone = "emerald",
 }: {
   children: ReactNode;
   className: string;
   motionViewportRoot?: RefObject<Element | null>;
+  tone?: ScrollRevealTone;
 }) {
   return (
-    <motion.div
-      initial={false}
-      whileInView={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-      viewport={motionViewportRoot ? { once: true, amount: 0.3, root: motionViewportRoot } : { once: true, amount: 0.3 }}
-      transition={{ duration: 0.7, ease: [0.21, 0.47, 0.32, 0.98] }}
+    <ScrollRevealTile
+      variant="panel"
+      tone={tone}
+      viewportRoot={motionViewportRoot}
       className={className}
     >
       {children}
-    </motion.div>
+    </ScrollRevealTile>
   );
 }
 
@@ -334,43 +421,75 @@ function HomeScrollContent({
           </p>
 
           <div className="mb-5 flex max-w-5xl flex-wrap items-center justify-center gap-2">
-            {heroProofItems.map((item) => (
-              <span
+            {heroProofItems.map((item, index) => (
+              <ScrollRevealTile
+                as="span"
                 key={`${item.label}-${item.value}`}
-                className="inline-flex min-h-10 items-center gap-2 rounded-full border border-white/10 bg-black/45 px-3.5 py-2 text-left shadow-[0_12px_35px_rgba(0,0,0,0.22)] backdrop-blur-md"
+                variant="chip"
+                tone="emerald"
+                viewportRoot={motionViewportRoot}
+                index={index}
+                className="inline-flex"
               >
-                <span className="text-[9px] font-bold uppercase tracking-[0.22em] text-emerald-300/80">{item.label}</span>
-                <span className="text-xs font-semibold text-white md:text-[13px]">{item.value}</span>
-              </span>
+                <span className="inline-flex min-h-10 items-center gap-2 rounded-full border border-white/10 bg-black/45 px-3.5 py-2 text-left shadow-[0_12px_35px_rgba(0,0,0,0.22)] backdrop-blur-md">
+                  <span className="text-[9px] font-bold uppercase tracking-[0.22em] text-emerald-300/80">{item.label}</span>
+                  <span className="text-xs font-semibold text-white md:text-[13px]">{item.value}</span>
+                </span>
+              </ScrollRevealTile>
             ))}
           </div>
 
           <div className="mb-7 flex flex-wrap items-center justify-center gap-2.5 md:mb-8 md:gap-3">
-            {portfolioData.personal.focusAreas.map((area) => (
-              <span
+            {portfolioData.personal.focusAreas.map((area, index) => (
+              <ScrollRevealTile
+                as="span"
                 key={area}
-                className="rounded-full border border-white/10 bg-black/30 px-4 py-2 text-[10px] font-bold uppercase tracking-[0.24em] text-gray-300 backdrop-blur-sm"
+                variant="chip"
+                tone="emerald"
+                viewportRoot={motionViewportRoot}
+                index={index + heroProofItems.length}
+                className="inline-flex"
               >
-                {area}
-              </span>
+                <span className="rounded-full border border-white/10 bg-black/30 px-4 py-2 text-[10px] font-bold uppercase tracking-[0.24em] text-gray-300 backdrop-blur-sm">
+                  {area}
+                </span>
+              </ScrollRevealTile>
             ))}
           </div>
 
           <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
-            <button
-              type="button"
-              onClick={() => onScrollToSection("projects")}
-              className="rounded-full bg-white px-6 py-3 text-[13px] font-bold uppercase tracking-[0.16em] text-black transition-all hover:bg-emerald-500 hover:text-white md:px-7 md:py-3.5 md:text-sm md:tracking-widest"
+            <ScrollRevealTile
+              as="span"
+              variant="chip"
+              tone="emerald"
+              viewportRoot={motionViewportRoot}
+              index={0}
+              className="inline-flex"
             >
-              View Selected Work
-            </button>
-            <button
-              type="button"
-              onClick={() => onScrollToSection("contact")}
-              className="inline-flex items-center rounded-full border border-white/15 bg-white/5 px-6 py-3 text-[13px] font-bold uppercase tracking-[0.16em] text-white transition-all hover:border-emerald-400/40 hover:bg-white/10 md:px-7 md:py-3.5 md:text-sm md:tracking-widest"
+              <button
+                type="button"
+                onClick={() => onScrollToSection("projects")}
+                className="rounded-full bg-white px-6 py-3 text-[13px] font-bold uppercase tracking-[0.16em] text-black transition-all hover:bg-emerald-500 hover:text-white md:px-7 md:py-3.5 md:text-sm md:tracking-widest"
+              >
+                View Selected Work
+              </button>
+            </ScrollRevealTile>
+            <ScrollRevealTile
+              as="span"
+              variant="chip"
+              tone="emerald"
+              viewportRoot={motionViewportRoot}
+              index={1}
+              className="inline-flex"
             >
-              <Mail size={16} className="mr-2" /> Let&apos;s Talk
-            </button>
+              <button
+                type="button"
+                onClick={() => onScrollToSection("contact")}
+                className="inline-flex items-center rounded-full border border-white/15 bg-white/5 px-6 py-3 text-[13px] font-bold uppercase tracking-[0.16em] text-white transition-all hover:border-emerald-400/40 hover:bg-white/10 md:px-7 md:py-3.5 md:text-sm md:tracking-widest"
+              >
+                <Mail size={16} className="mr-2" /> Let&apos;s Talk
+              </button>
+            </ScrollRevealTile>
           </div>
 
           <div className="mt-6 inline-flex items-center text-[10px] font-bold uppercase tracking-[0.28em] text-gray-500 md:mt-7 md:text-[11px]">
@@ -382,15 +501,19 @@ function HomeScrollContent({
       {/* About */}
       <section id="about" data-home-scroll-section="about" className="px-6 py-14 md:py-20">
         <div className="pointer-events-auto mx-auto max-w-7xl">
-          <div className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-black/[0.5] shadow-[0_0_70px_rgba(0,0,0,0.34)] backdrop-blur-xl">
+          <ScrollRevealTile
+            variant="panel"
+            tone="emerald"
+            viewportRoot={motionViewportRoot}
+            className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-black/[0.5] shadow-[0_0_70px_rgba(0,0,0,0.34)] backdrop-blur-xl"
+          >
             <div aria-hidden className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(16,185,129,0.12),transparent_42%),radial-gradient(circle_at_bottom_right,rgba(56,189,248,0.08),transparent_34%)]" />
 
             <div className="relative grid gap-8 px-6 py-8 md:px-8 md:py-10 lg:grid-cols-[minmax(0,1.32fr)_minmax(320px,0.9fr)] lg:gap-8 lg:px-10">
-              <motion.div
-                initial={false}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={motionViewportRoot ? { once: true, amount: 0.3, root: motionViewportRoot } : { once: true, amount: 0.3 }}
-                transition={{ duration: 0.45 }}
+              <ScrollRevealTile
+                variant="panel"
+                tone="emerald"
+                viewportRoot={motionViewportRoot}
                 className="lg:pr-8"
               >
                 <span className="mb-4 block text-xs font-bold uppercase tracking-widest text-emerald-400">
@@ -404,13 +527,14 @@ function HomeScrollContent({
                     <p key={paragraph}>{paragraph}</p>
                   ))}
                 </div>
-              </motion.div>
+              </ScrollRevealTile>
 
-              <motion.aside
-                initial={false}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={motionViewportRoot ? { once: true, amount: 0.35, root: motionViewportRoot } : { once: true, amount: 0.35 }}
-                transition={{ duration: 0.4, delay: 0.08 }}
+              <ScrollRevealTile
+                as="aside"
+                variant="panel"
+                tone="blue"
+                viewportRoot={motionViewportRoot}
+                index={1}
                 className="lg:border-l lg:border-white/8 lg:pl-8"
               >
                 <div className="flex h-full flex-col gap-6 lg:justify-between">
@@ -421,40 +545,55 @@ function HomeScrollContent({
 
                     <div className="mt-4 grid gap-3 sm:grid-cols-2">
                       {portfolioData.metrics.map((metric, idx) => (
-                        <motion.div
+                        <ScrollRevealTile
                           key={metric.label}
-                          initial={false}
-                          whileInView={{ opacity: 1, y: 0 }}
-                          viewport={motionViewportRoot ? { once: true, amount: 0.4, root: motionViewportRoot } : { once: true, amount: 0.4 }}
-                          transition={{ duration: 0.35, delay: idx * 0.08 }}
-                          className="flex min-h-[118px] flex-col justify-between rounded-[1.5rem] border border-white/10 bg-black/35 p-4 shadow-[0_18px_40px_rgba(0,0,0,0.18)] backdrop-blur-md md:min-h-[128px] md:p-5"
+                          variant="metric"
+                          tone={idx % 2 === 0 ? "emerald" : "blue"}
+                          viewportRoot={motionViewportRoot}
+                          index={idx}
+                          className="min-h-[118px] rounded-[1.5rem] border border-white/10 bg-black/35 p-4 shadow-[0_18px_40px_rgba(0,0,0,0.18)] backdrop-blur-md md:min-h-[128px] md:p-5"
+                          contentClassName="flex h-full flex-col justify-between"
                         >
                           <div className="text-3xl font-bold tracking-tight text-white md:text-4xl">{metric.value}</div>
                           <div className="text-[10px] font-bold uppercase tracking-[0.22em] text-gray-500">{metric.label}</div>
-                        </motion.div>
+                        </ScrollRevealTile>
                       ))}
                     </div>
                   </div>
 
-                  <div className="rounded-[1.5rem] border border-white/10 bg-white/[0.03] p-5 shadow-[0_18px_50px_rgba(0,0,0,0.18)] backdrop-blur-md md:p-6">
+                  <ScrollRevealTile
+                    variant="panel"
+                    tone="emerald"
+                    viewportRoot={motionViewportRoot}
+                    index={2}
+                    className="rounded-[1.5rem] border border-white/10 bg-white/[0.03] p-5 shadow-[0_18px_50px_rgba(0,0,0,0.18)] backdrop-blur-md md:p-6"
+                  >
                     <p className="text-[10px] font-bold uppercase tracking-[0.26em] text-gray-500">
                       {portfolioData.sectionCopy.about.focusLabel}
                     </p>
                     <div className="mt-4 flex flex-wrap gap-2.5">
-                      {portfolioData.personal.focusAreas.map((area) => (
-                        <span
+                      {portfolioData.personal.focusAreas.map((area, index) => (
+                        <ScrollRevealTile
+                          as="span"
                           key={area}
-                          className="rounded-full border border-white/10 bg-black/25 px-3.5 py-2 text-[10px] font-bold uppercase tracking-[0.22em] text-gray-300"
+                          variant="chip"
+                          tone="emerald"
+                          viewportRoot={motionViewportRoot}
+                          index={index}
+                          delay={index * 0.02}
+                          className="inline-flex"
                         >
-                          {area}
-                        </span>
+                          <span className="rounded-full border border-white/10 bg-black/25 px-3.5 py-2 text-[10px] font-bold uppercase tracking-[0.22em] text-gray-300">
+                            {area}
+                          </span>
+                        </ScrollRevealTile>
                       ))}
                     </div>
-                  </div>
+                  </ScrollRevealTile>
                 </div>
-              </motion.aside>
+              </ScrollRevealTile>
             </div>
-          </div>
+          </ScrollRevealTile>
         </div>
       </section>
 
@@ -476,9 +615,14 @@ function HomeScrollContent({
               </p>
             </div>
           </AnimatedSectionIntro>
-          <div className="rounded-[2rem] border border-white/10 bg-black/40 p-8 shadow-[0_0_60px_rgba(0,0,0,0.22)] backdrop-blur-md md:p-10">
+          <ScrollRevealTile
+            variant="panel"
+            tone="emerald"
+            viewportRoot={motionViewportRoot}
+            className="rounded-[2rem] border border-white/10 bg-black/40 p-8 shadow-[0_0_60px_rgba(0,0,0,0.22)] backdrop-blur-md md:p-10"
+          >
             <SkillsGrid skills={portfolioData.skills} viewportRoot={motionViewportRoot} />
-          </div>
+          </ScrollRevealTile>
         </div>
       </section>
 
@@ -489,6 +633,7 @@ function HomeScrollContent({
           <AnimatedSectionIntro
             className={`mb-14 max-w-5xl ${sectionIntroClassName}`}
             motionViewportRoot={motionViewportRoot}
+            tone="blue"
           >
             <div aria-hidden className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(59,130,246,0.14),transparent_56%)]" />
             <div className="relative text-center">
@@ -538,6 +683,7 @@ function HomeScrollContent({
           <AnimatedSectionIntro
             className={`mb-12 max-w-5xl ${sectionIntroClassName}`}
             motionViewportRoot={motionViewportRoot}
+            tone="emerald"
           >
             <div aria-hidden className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(52,211,153,0.14),transparent_58%)]" />
             <div className="relative text-center">
@@ -561,10 +707,21 @@ function HomeScrollContent({
         <div aria-hidden className="absolute inset-x-0 top-0 h-full bg-[radial-gradient(circle_at_72%_34%,rgba(16,185,129,0.14),transparent_40%)]" />
         <div className="pointer-events-auto relative z-10 max-w-5xl mx-auto">
           <SectionNavAnchor sectionId="contact" />
-          <div className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-black/[0.58] px-6 py-8 shadow-[0_0_80px_rgba(0,0,0,0.34)] backdrop-blur-xl md:px-10 md:py-10">
+          <ScrollRevealTile
+            variant="panel"
+            tone="emerald"
+            viewportRoot={motionViewportRoot}
+            sceneAnchor="contact-panel"
+            className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-black/[0.58] px-6 py-8 shadow-[0_0_80px_rgba(0,0,0,0.34)] backdrop-blur-xl md:px-10 md:py-10"
+          >
             <div aria-hidden className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(16,185,129,0.16),transparent_56%)]" />
             <div className="relative grid gap-8 lg:grid-cols-[1.05fr_0.95fr] lg:items-start">
-              <div className="text-center lg:text-left">
+              <ScrollRevealTile
+                variant="panel"
+                tone="emerald"
+                viewportRoot={motionViewportRoot}
+                className="text-center lg:text-left"
+              >
                 <span className="mb-4 block text-xs font-bold uppercase tracking-widest text-emerald-400">
                   {portfolioData.sectionCopy.contact.eyebrow}
                 </span>
@@ -576,40 +733,80 @@ function HomeScrollContent({
                 </p>
 
                 <div className="mt-6 flex flex-wrap justify-center gap-3 lg:justify-start">
-                  {portfolioData.sectionCopy.contact.chips.map((chip) => (
-                    <span
+                  {portfolioData.sectionCopy.contact.chips.map((chip, index) => (
+                    <ScrollRevealTile
+                      as="span"
                       key={chip}
-                      className="rounded-full border border-white/10 bg-white/[0.03] px-3.5 py-2 text-[10px] font-bold uppercase tracking-[0.22em] text-gray-300"
+                      variant="chip"
+                      tone="emerald"
+                      viewportRoot={motionViewportRoot}
+                      index={index}
+                      className="inline-flex"
                     >
-                      {chip}
-                    </span>
+                      <span className="rounded-full border border-white/10 bg-white/[0.03] px-3.5 py-2 text-[10px] font-bold uppercase tracking-[0.22em] text-gray-300">
+                        {chip}
+                      </span>
+                    </ScrollRevealTile>
                   ))}
-                  <span className="rounded-full border border-emerald-400/18 bg-emerald-400/[0.04] px-3.5 py-2 text-[10px] font-bold uppercase tracking-[0.22em] text-emerald-200">
-                    {portfolioData.personal.location}
-                  </span>
+                  <ScrollRevealTile
+                    as="span"
+                    variant="chip"
+                    tone="emerald"
+                    viewportRoot={motionViewportRoot}
+                    index={portfolioData.sectionCopy.contact.chips.length}
+                    className="inline-flex"
+                  >
+                    <span className="rounded-full border border-emerald-400/18 bg-emerald-400/[0.04] px-3.5 py-2 text-[10px] font-bold uppercase tracking-[0.22em] text-emerald-200">
+                      {portfolioData.personal.location}
+                    </span>
+                  </ScrollRevealTile>
                 </div>
 
                 <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:justify-center lg:justify-start">
-                  <a
-                    href={getEmailComposeUrl(portfolioData.personal.email)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center justify-center rounded-full bg-white px-7 py-3.5 text-sm font-bold uppercase tracking-widest text-black transition-all hover:bg-emerald-500 hover:text-white"
+                  <ScrollRevealTile
+                    as="span"
+                    variant="chip"
+                    tone="emerald"
+                    viewportRoot={motionViewportRoot}
+                    index={0}
+                    className="inline-flex"
                   >
-                    <Mail size={16} className="mr-2" /> Email Me
-                  </a>
-                  <a
-                    href={portfolioData.personal.resume}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center justify-center rounded-full border border-white/15 bg-white/[0.03] px-7 py-3.5 text-sm font-bold uppercase tracking-widest text-white transition-all hover:border-emerald-400/35 hover:bg-white/[0.08]"
+                    <a
+                      href={getEmailComposeUrl(portfolioData.personal.email)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center justify-center rounded-full bg-white px-7 py-3.5 text-sm font-bold uppercase tracking-widest text-black transition-all hover:bg-emerald-500 hover:text-white"
+                    >
+                      <Mail size={16} className="mr-2" /> Email Me
+                    </a>
+                  </ScrollRevealTile>
+                  <ScrollRevealTile
+                    as="span"
+                    variant="chip"
+                    tone="emerald"
+                    viewportRoot={motionViewportRoot}
+                    index={1}
+                    className="inline-flex"
                   >
-                    <FileText size={16} className="mr-2" /> View Resume
-                  </a>
+                    <a
+                      href={portfolioData.personal.resume}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center justify-center rounded-full border border-white/15 bg-white/[0.03] px-7 py-3.5 text-sm font-bold uppercase tracking-widest text-white transition-all hover:border-emerald-400/35 hover:bg-white/[0.08]"
+                    >
+                      <FileText size={16} className="mr-2" /> View Resume
+                    </a>
+                  </ScrollRevealTile>
                 </div>
-              </div>
+              </ScrollRevealTile>
 
-              <div className="rounded-[1.5rem] border border-white/10 bg-white/[0.03] p-5 text-left shadow-[0_18px_50px_rgba(0,0,0,0.22)] backdrop-blur-md md:p-6">
+              <ScrollRevealTile
+                variant="contactRow"
+                tone="emerald"
+                viewportRoot={motionViewportRoot}
+                index={1}
+                className="rounded-[1.5rem] border border-white/10 bg-white/[0.03] p-5 text-left shadow-[0_18px_50px_rgba(0,0,0,0.22)] backdrop-blur-md md:p-6"
+              >
                 <div className="mb-5 border-b border-white/8 pb-4">
                   <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-gray-500">
                     {portfolioData.sectionCopy.contact.reachLabel}
@@ -626,15 +823,29 @@ function HomeScrollContent({
                 </div>
 
                 <div className="space-y-3">
-                  <div className="flex items-center justify-between rounded-2xl border border-white/8 bg-black/30 px-4 py-3">
+                  <ScrollRevealTile
+                    variant="contactRow"
+                    tone="emerald"
+                    viewportRoot={motionViewportRoot}
+                    index={0}
+                    className="rounded-2xl border border-white/8 bg-black/30 px-4 py-3"
+                    contentClassName="flex h-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"
+                  >
                     <div className="flex items-center text-sm text-gray-300">
                       <MapPin size={16} className="mr-3 text-emerald-400" />
                       Base Location
                     </div>
-                    <span className="text-sm font-medium text-white">{portfolioData.personal.location}</span>
-                  </div>
+                    <span className="text-sm font-medium leading-snug text-white sm:text-right">{portfolioData.personal.location}</span>
+                  </ScrollRevealTile>
 
-                  <div className="flex items-center justify-between rounded-2xl border border-white/8 bg-black/30 px-4 py-3">
+                  <ScrollRevealTile
+                    variant="contactRow"
+                    tone="emerald"
+                    viewportRoot={motionViewportRoot}
+                    index={1}
+                    className="rounded-2xl border border-white/8 bg-black/30 px-4 py-3"
+                    contentClassName="flex h-full items-center justify-between gap-4"
+                  >
                     <div className="flex items-center text-sm text-gray-300">
                       <Linkedin size={16} className="mr-3 text-emerald-400" />
                       LinkedIn
@@ -647,9 +858,16 @@ function HomeScrollContent({
                     >
                       Connect
                     </a>
-                  </div>
+                  </ScrollRevealTile>
 
-                  <div className="flex items-center justify-between rounded-2xl border border-white/8 bg-black/30 px-4 py-3">
+                  <ScrollRevealTile
+                    variant="contactRow"
+                    tone="emerald"
+                    viewportRoot={motionViewportRoot}
+                    index={2}
+                    className="rounded-2xl border border-white/8 bg-black/30 px-4 py-3"
+                    contentClassName="flex h-full items-center justify-between gap-4"
+                  >
                     <div className="flex items-center text-sm text-gray-300">
                       <Github size={16} className="mr-3 text-emerald-400" />
                       GitHub
@@ -662,11 +880,11 @@ function HomeScrollContent({
                     >
                       Review Work
                     </a>
-                  </div>
+                  </ScrollRevealTile>
                 </div>
-              </div>
+              </ScrollRevealTile>
             </div>
-          </div>
+          </ScrollRevealTile>
         </div>
       </section>
 
@@ -726,6 +944,7 @@ export default function Home() {
     return hashSectionId ? { sectionId: hashSectionId, settledTargetTop: null } : null;
   });
   const [restoredProjectId, setRestoredProjectId] = useState<string | null>(null);
+  const isLitePerformanceMode = useLitePerformanceMode();
   const heroAnchorX = useMotionValue(0);
   const heroAnchorY = useMotionValue(0.18);
   const heroIntroProgress = useMotionValue(0);
@@ -1510,21 +1729,25 @@ export default function Home() {
       heroIntroProgress.set(Math.max(0, Math.min(1, rawProgress)));
     };
 
-    const updateHeroAnchor = () => {
-      measureHeroState();
-      frame = window.requestAnimationFrame(updateHeroAnchor);
+    const scheduleHeroStateMeasure = () => {
+      window.cancelAnimationFrame(frame);
+      frame = window.requestAnimationFrame(measureHeroState);
     };
 
-    updateHeroAnchor();
-    const observer = new ResizeObserver(measureHeroState);
+    scheduleHeroStateMeasure();
+    scrollViewport.addEventListener("scroll", scheduleHeroStateMeasure, { passive: true });
+    const observer = new ResizeObserver(scheduleHeroStateMeasure);
     observer.observe(heroSection);
     observer.observe(portrait);
-    window.addEventListener("resize", measureHeroState);
+    window.addEventListener("resize", scheduleHeroStateMeasure);
+    const timeouts = [120, 360, 900].map((delay) => window.setTimeout(scheduleHeroStateMeasure, delay));
 
     return () => {
       window.cancelAnimationFrame(frame);
+      scrollViewport.removeEventListener("scroll", scheduleHeroStateMeasure);
       observer.disconnect();
-      window.removeEventListener("resize", measureHeroState);
+      window.removeEventListener("resize", scheduleHeroStateMeasure);
+      timeouts.forEach((timeout) => window.clearTimeout(timeout));
     };
   }, [heroAnchorX, heroAnchorY, heroIntroProgress, pages, scrollViewportVersion]);
 
@@ -1546,12 +1769,27 @@ export default function Home() {
       {isCanvasEnabled ? (
         <CanvasErrorBoundary onError={handleCanvasError}>
           <div className="fixed inset-0 z-0 bg-black">
-            <Canvas dpr={[1, 1.5]} camera={{ position: [0, 0, 5], fov: 75 }} style={{ position: "absolute", inset: 0, zIndex: 0 }}>
+            <Canvas
+              dpr={isLitePerformanceMode ? 1 : [1, 1.35]}
+              camera={{ position: [0, 0, 5], fov: 75 }}
+              gl={{
+                alpha: true,
+                antialias: !isLitePerformanceMode,
+                powerPreference: isLitePerformanceMode ? "default" : "high-performance",
+              }}
+              performance={{ min: 0.45 }}
+              style={{ position: "absolute", inset: 0, zIndex: 0 }}
+            >
               <SceneLights />
               {isPresent && (
-                <ScrollControls pages={pages} damping={0.28} style={{ zIndex: "1", scrollBehavior: "auto" }}>
+                <ScrollControls pages={pages} damping={isLitePerformanceMode ? 0.08 : 0.14} style={{ zIndex: "1", scrollBehavior: "auto" }}>
                   <ScrollViewportBridge onReady={setScrollViewport} />
-                  <StoryScene heroAnchor={heroAnchor} heroIntroProgress={heroIntroProgress} sectionRanges={sectionRanges} />
+                  <StoryScene
+                    heroAnchor={heroAnchor}
+                    heroIntroProgress={heroIntroProgress}
+                    sectionRanges={sectionRanges}
+                    liteMode={isLitePerformanceMode}
+                  />
                   <Scroll html style={{ width: "100%", position: "absolute", inset: 0, zIndex: 1 }}>
                     <HomeScrollContent
                       canvasMode
