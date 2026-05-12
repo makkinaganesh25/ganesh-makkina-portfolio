@@ -18,7 +18,7 @@ Read this file with `AGENTS.md` and [`code_repo_update.md`](code_repo_update.md)
 - Make the smallest safe diff.
 - Do not redesign unrelated parts of the site while fixing a localized issue.
 - If a change alters contributor-facing repo behavior or structure, update `code_repo_update.md` and the affected docs in the same task.
-- Run `npm run lint` and `npm run build` after edits.
+- Run `npm run lint`, `npm run test`, and `npm run build` after edits.
 
 ## Homepage Architecture
 
@@ -46,6 +46,7 @@ Read this file with `AGENTS.md` and [`code_repo_update.md`](code_repo_update.md)
 ## Pre-Handoff Checks
 
 - `npm run lint`
+- `npm run test`
 - `npm run build`
 - `code_repo_update.md` and linked docs reflect any repo-facing contract changes from the task
 - Manual homepage smoke pass:

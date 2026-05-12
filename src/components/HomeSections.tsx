@@ -220,6 +220,7 @@ export function ProjectTree({
           const Icon = tone.icon;
           const isLeft = idx % 2 === 0;
           const isRestoredProject = restoredProjectId === project.id;
+          const primaryMetric = project.impactMetrics[0];
 
           return (
             <motion.div
@@ -290,6 +291,20 @@ export function ProjectTree({
 
                   <h3 className="relative mb-3 text-3xl font-bold text-white md:text-4xl">{project.title}</h3>
                   <p className="relative mb-6 text-sm font-medium uppercase tracking-[0.24em] text-gray-500">{project.domain}</p>
+
+                  <div className="relative mb-6 grid gap-4 border-y border-white/[0.06] py-4 sm:grid-cols-2">
+                    <div>
+                      <p className="text-[9px] font-bold uppercase tracking-[0.24em] text-gray-500">Role</p>
+                      <p className="mt-1 text-sm font-semibold text-white">{project.role}</p>
+                    </div>
+                    <div>
+                      <p className="text-[9px] font-bold uppercase tracking-[0.24em] text-gray-500">Signal</p>
+                      <p className="mt-1 text-sm font-semibold text-white">
+                        {primaryMetric ? `${primaryMetric.value} ${primaryMetric.label}` : project.typeLabel}
+                      </p>
+                    </div>
+                  </div>
+
                   <p className="relative mb-8 leading-relaxed text-gray-400">{project.summary}</p>
 
                   <div className="relative mb-7 flex flex-wrap gap-2">

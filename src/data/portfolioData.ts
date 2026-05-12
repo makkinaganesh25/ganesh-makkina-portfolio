@@ -140,7 +140,7 @@ const sharedIdentity = {
   email: "gm832@scarletmail.rutgers.edu",
   linkedin: "https://www.linkedin.com/in/ganesh-makkina/",
   github: "https://github.com/makkinaganesh25",
-  location: "New Brunswick, NJ",
+  location: "New York City Metropolitan Area",
 };
 
 const sharedEducation: Education[] = [
@@ -152,6 +152,16 @@ const sharedEducation: Education[] = [
     details: [
       "Coursework: Regression & Time Series, Probability & Statistics, Advanced Database Management, Financial Data Mining, Data Wrangling",
       "Graduate training focused on statistical modeling, database design, cloud data workflows, and analytical systems.",
+    ],
+  },
+  {
+    school: "Army Institute of Technology",
+    degree: "Bachelor of Engineering in Computer Science",
+    period: "Jul 2017 - Jul 2021",
+    location: "Pune, Maharashtra, India",
+    details: [
+      "Computer science foundation across data structures, algorithms, operating systems, database systems, and computer networks.",
+      "Undergraduate engineering training that supports the backend, data modeling, and systems work across the portfolio.",
     ],
   },
 ];
@@ -203,11 +213,11 @@ const sharedExperience: Experience[] = [
     role: "Founder and Builder",
     period: "2025 - Present",
     description: [
-      "Built a workforce scheduling operating system for shift-based teams, moving schedule ownership, requests, messaging, compliance, and auditability out of spreadsheets.",
-      "Released Shiftelix on the App Store as an iPhone workforce scheduling hub with schedule visibility, request workflows, team messaging, security settings, and account lifecycle controls.",
-      "Designed the platform around compliance-aware scheduling, role-scoped access, audit trails, and accountable workforce operations for university and shift-based teams.",
+      "Built Shiftelix as a university student workforce scheduling platform, turning schedule creation, coverage requests, messaging, compliance evidence, audit history, payroll handoff, and admin workflows into one product system.",
+      "Owned the full stack across a Node/Express API, React web app, Expo React Native mobile app, MySQL migrations, Render deployment, Firebase-backed messaging, push notifications, and App Store release readiness.",
+      "Designed the platform around workspace and department isolation, permission-first RBAC, JWT plus CSRF/Bearer auth paths, audit hash chains, and compliance-aware scheduling decisions.",
     ],
-    skills: ["Product Engineering", "Scheduling Systems", "AWS RDS", "Render", "Compliance Workflows"],
+    skills: ["Product Engineering", "Node/Express", "React Native", "MySQL", "Render", "RBAC"],
   },
 ];
 
@@ -388,166 +398,81 @@ const shiftelixProject: Project = {
   typeLabel: "Product Engineering",
   icon: "risk",
   summary:
-    "A production workforce scheduling hub for shift-based teams, designed around schedule visibility, request workflows, messaging, compliance-aware decisions, and audit-ready operations.",
+    "A shipped university workforce scheduling platform that connects scheduler operations, coverage requests, marketplace flows, compliance evidence, audit history, payroll handoff, messaging, and mobile self-service.",
   role: "Founder and Builder",
-  domain: "Workforce Operations / Scheduling Platform",
-  techStack: ["React", "Python", "AWS RDS", "Render", "iOS", "Messaging", "Compliance Rules", "Audit Logs"],
+  domain: "University Workforce / Student Scheduling Platform",
+  techStack: ["Node/Express", "React", "Expo React Native", "MySQL", "Render", "Firebase/Firestore", "Socket.io", "RBAC", "CSRF/JWT"],
   problem:
-    "Teams were using spreadsheets and message threads to manage schedules, swaps, coverage, eligibility, approvals, and accountability that needed structured operational truth.",
+    "University workforce teams were coordinating schedules, coverage, swaps, eligibility, approvals, messages, and payroll-sensitive records across spreadsheets and ad hoc threads, even though the decisions needed durable operational truth.",
   context:
-    "Public Shiftelix blog and App Store listing describe a real workforce scheduling system built by Ganesh Makkina for university and shift-based operations.",
+    "Shiftelix is the current product form of the Rutgers scheduling automation work, verified against the current monorepo, related Rutgers-origin repositories, the public product site, the founder blog, and the App Store listing for the live iPhone app.",
   stakes:
-    "When schedule changes, eligibility rules, manager approvals, and team communication live in scattered tools, organizations lose accountability and create operational risk.",
+    "One shift record can affect staffing coverage, student-worker eligibility, manager approvals, location check-in requirements, audit evidence, payroll review, notifications, and downstream reporting.",
   ownership: [
-    "Designed the product direction around workforce scheduling as an operating system, not only a calendar.",
-    "Built workflows for schedules, requests, team messaging, account security, and account lifecycle controls.",
-    "Modeled compliance-aware scheduling, role-scoped access, and audit trails as core platform concerns.",
+    "Defined the product direction around student workforce operations rather than a standalone calendar.",
+    "Built the backend route/service surface for shifts, requests, marketplace, compliance, audit, payroll, timecards, permanent scheduling, schedule board/workbook, notifications, chat, users, workspaces, and account lifecycle.",
+    "Shipped web and mobile surfaces for schedule visibility, request queues, team messaging, security settings, workspace switching, department scope, support/privacy links, and account deletion.",
   ],
   goals: [
-    "Replace spreadsheet-driven coordination with structured workflows for schedules, requests, and ownership.",
-    "Give managers visibility into staffing risk, approvals, and operational context without manual reconstruction.",
-    "Ship a real mobile-facing product with account, support, privacy, and workflow controls.",
+    "Make schedules, coverage requests, swaps, approvals, and payroll-adjacent records traceable instead of spreadsheet-dependent.",
+    "Give managers a governed operating layer for staffing, eligibility, compliance review, audit evidence, and reporting projections.",
+    "Release a real mobile product with secure account, support, privacy, messaging, and self-service workflows.",
   ],
   architecture:
-    "A product platform with mobile app surfaces, backend services, AWS RDS persistence, Render deployment, request workflows, messaging infrastructure, access controls, and audit-oriented data design.",
+    "Node/Express protected APIs run behind JWT, CSRF, Bearer mobile auth, workspace activation, feature entitlements, workspace membership checks, and department-context middleware. React web and Expo React Native clients call the same backend contracts. MySQL migrations and the maintained schema snapshot define the operational model, while Render runs the Dockerized API, static frontend, and worker services. Firebase/Firestore collections support conversation, participant, and search flows, with backend push and attachment routes around notification delivery.",
   implementation: [
-    "Built the first production release around employee home, schedule visibility, shift/request workflows, team messaging, security settings, and account deletion request flow.",
-    "Designed compliance-oriented workflow concepts for rest rules, hour limits, shift overlap checks, credential requirements, and student-worker constraints.",
-    "Created product education and founder notes that translate technical scheduling architecture into practical operations language for university teams.",
+    "Modeled core scheduling data in MySQL across workspaces, departments, users, memberships, shifts, coverage requests, swap requests, leave requests, permanent schedule runs, audit logs, payroll export batches, schedule board facts, and schedule workbook tabs.",
+    "Implemented operational modules for scheduler actions, marketplace coverage, compliance and eligibility checks, audit hub, LiveGuard/location-required check-ins, payroll/timecard review, Google Sheets and native board/workbook projections, QuickSight reporting, notifications, and account lifecycle.",
+    "Built mobile navigation around Home, Schedule, Requests, Inbox, More, shift detail, marketplace, chat thread, security settings, account deletion, workspace switching, department scope, calendar sync, and legal/support screens.",
   ],
   decisions: [
     {
-      title: "Workflow over spreadsheet parity",
+      title: "Relational source of truth",
       detail:
-        "Modeled swaps, requests, approvals, and status changes as accountable workflows rather than recreating a flexible grid with prettier UI.",
+        "Kept the durable operational contract in MySQL migrations and schema snapshots because shifts, approvals, payroll handoff, audit evidence, and reporting projections need consistent workspace-scoped records.",
     },
     {
-      title: "Compliance as a hard gate",
+      title: "Scope before screens",
       detail:
-        "Designed rules to block risky assignments at creation time instead of leaving policy violations to be found after schedules were published.",
+        "Made workspace isolation, department context, permission-first RBAC, and entitlement gates backend concerns before exposing the same workflows through web and mobile clients.",
     },
     {
-      title: "Auditability as product value",
+      title: "Operational evidence by design",
       detail:
-        "Treated event history, permission scope, and operational evidence as core system requirements because disputes depend on what the data can prove.",
+        "Used audit logs, compliance evaluations, decision evidence, request histories, notification logs, and projection refresh queues so scheduling changes leave an explainable trail.",
     },
   ],
   flow:
-    "Employee + Manager Actions -> Request Workflows -> Compliance Checks -> Scoped Data Access -> Audit Trail -> Mobile Operations Hub",
+    "Student + Manager Actions -> Auth + Workspace/Department Scope -> Scheduler/Requests/Marketplace -> Compliance + Eligibility -> Audit + Notifications -> Board/Workbook/Payroll Projections -> Web + iOS Operations",
   challenges: [
-    "Turning messy human scheduling behavior into structured workflows without making the product rigid.",
-    "Balancing employee self-service with manager visibility, rules, and operational accountability.",
+    "Turning messy shift operations into structured workflows without losing the flexibility managers need during real coverage changes.",
+    "Keeping web and mobile behavior aligned while protecting workspace scope, department scope, permissions, messaging privacy, and payroll-sensitive data.",
   ],
   impactMetrics: [
     {
       label: "Public Release",
       value: "iOS",
-      detail: "Shiftelix is listed on the App Store as a workforce scheduling hub for iPhone.",
+      detail: "Shiftelix is listed on the App Store as an iPhone workforce scheduling app.",
     },
     {
-      label: "Core Workflows",
-      value: "5+",
-      detail: "Schedule visibility, shift requests, messaging, security, and account lifecycle controls are part of the first release.",
+      label: "Deployment",
+      value: "Render",
+      detail: "The current blueprint defines a Dockerized API, static web frontend, media worker, and DocQA ingest worker.",
     },
     {
-      label: "Product Lens",
-      value: "Compliance-first",
-      detail: "The platform is framed around ownership, rules, visibility, and audit-ready operations.",
+      label: "Data Model",
+      value: "MySQL",
+      detail: "The schema covers scheduling, requests, compliance, audit, payroll, projections, workspaces, departments, and users.",
     },
   ],
   outcomes: [
-    "Released a real workforce scheduling product with mobile workflows for employees, managers, and admins.",
-    "Converted a spreadsheet pain point into a broader operating-system model for university and shift-based teams.",
-    "Built public product narrative, support paths, and privacy/account controls around production use.",
+    "Released a real Shiftelix iPhone app and public product site instead of leaving the work as a private prototype.",
+    "Evolved the Rutgers scheduling automation work into one broader workforce operations platform with backend, web, mobile, deployment, and operational readiness layers.",
+    "Built an engineering story where the strongest asset is the system design: one operational data model feeding scheduling, requests, compliance, audit, payroll, reporting, messaging, and mobile workflows.",
   ],
   lessons: [
-    "The hard part of scheduling is not drawing time blocks; it is preserving accountability when real operations change.",
-    "A strong data model can be a product differentiator when compliance, permissions, and auditability matter.",
-  ],
-};
-
-const rutgersSchedulerProject: Project = {
-  id: "rutgers-scheduling-automation",
-  title: "Rutgers Scheduling Automation",
-  type: "AI",
-  typeLabel: "Full-Stack Data Product",
-  icon: "application",
-  summary:
-    "A React and Node.js operations platform for Rutgers scheduling and compliance workflows, backed by MySQL on AWS RDS and designed to reduce manual coordination by roughly 30 hours per week.",
-  role: "Full-Stack Builder",
-  domain: "University Operations / Scheduling Automation",
-  techStack: ["React", "Node.js", "MySQL", "AWS RDS", "Google Calendar API", "REST APIs", "AWS"],
-  problem:
-    "Manual scheduling workflows created repetitive coordination, scattered operational state, and avoidable compliance checks for campus workforce operations.",
-  context:
-    "Resume-backed project and prior portfolio case study focused on Rutgers CSO operations, scheduling automation, database design, and operational workflow APIs.",
-  stakes:
-    "Campus operations needed a system that reduced manual scheduling workload while preserving data integrity, compliance logic, and integration paths.",
-  ownership: [
-    "Built the full-stack platform with React interfaces and Node.js REST APIs.",
-    "Designed MySQL data models for schedules, roles, requests, compliance checks, and operational state.",
-    "Planned cloud deployment paths around AWS RDS, S3 concepts, and EC2/ECS architecture.",
-  ],
-  goals: [
-    "Reduce recurring manual scheduling workload for operational teams.",
-    "Build a data model strong enough for scheduling, compliance, and audit-oriented workflows.",
-    "Integrate calendar and cloud storage patterns without making the platform brittle.",
-  ],
-  architecture:
-    "React frontend workflows connected to Node.js REST APIs, MySQL on AWS RDS for structured scheduling data, Google Calendar integration for visibility, and AWS deployment concepts for scalable operations.",
-  implementation: [
-    "Developed CRUD and transformation APIs that handled complex scheduling logic, compliance state, and operational updates.",
-    "Designed relational tables and constraints for workforce schedules, assignments, requests, and calendar-linked data.",
-    "Integrated Google Calendar API concepts and cloud storage paths to support scalable operational data management.",
-  ],
-  decisions: [
-    {
-      title: "Relational core for operational truth",
-      detail:
-        "Used MySQL and explicit workflow entities because scheduling decisions need traceable state, not only flexible documents.",
-    },
-    {
-      title: "API boundary around scheduling logic",
-      detail:
-        "Kept compliance and transformation logic behind Node.js services so UI workflows stayed simpler and easier to evolve.",
-    },
-    {
-      title: "Cloud-ready from the model up",
-      detail:
-        "Designed around AWS RDS and deployable services so the platform could move from project build to real operations more cleanly.",
-    },
-  ],
-  flow:
-    "React Operations UI -> Node.js REST APIs -> Scheduling Logic -> MySQL/AWS RDS -> Calendar + Cloud Integrations -> Operational Dashboards",
-  challenges: [
-    "Modeling scheduling exceptions and compliance rules without creating fragile one-off logic.",
-    "Keeping the application understandable while supporting many operational workflows at once.",
-  ],
-  impactMetrics: [
-    {
-      label: "Manual Workload",
-      value: "-30 hrs/wk",
-      detail: "Automation reduced recurring scheduling and coordination workload by roughly 30 hours per week.",
-    },
-    {
-      label: "System Shape",
-      value: "Full-stack",
-      detail: "React, Node.js, MySQL, AWS RDS, and integration workflows were designed together.",
-    },
-    {
-      label: "Data Contract",
-      value: "Operational",
-      detail: "The platform modeled schedules, requests, compliance, and integrity as first-class data concerns.",
-    },
-  ],
-  outcomes: [
-    "Reduced manual workload by roughly 30 hours per week through scheduling and compliance automation.",
-    "Delivered a full-stack operations platform with scalable relational data modeling.",
-    "Created a foundation for cloud deployment and calendar-integrated scheduling workflows.",
-  ],
-  lessons: [
-    "Scheduling products succeed when the workflow model is designed as carefully as the interface.",
-    "Operational automation needs database integrity and user flow design to evolve together.",
+    "The hard part of workforce scheduling is not the calendar UI; it is preserving scope, evidence, and accountability when people change plans.",
+    "A strong data model becomes product leverage when compliance, permissions, payroll, notifications, and reporting all depend on the same operational truth.",
   ],
 };
 
@@ -753,57 +678,56 @@ function createBaseProfile({
 }
 
 const dataEngineerProfile = createBaseProfile({
-  headline: "Senior Data Engineer @ S&P Global | AWS Lakehouse Platforms | Shiftelix",
+  headline: "Senior Data Engineer | S&P Global | AWS Lakehouse Platforms | Founder, Shiftelix",
   about: [
-    "I build cloud data platforms that move messy operational data into governed, queryable, production-ready systems.",
-    "My strongest work sits at the intersection of AWS data engineering, Spark transformations, Redshift/Snowflake warehousing, workflow orchestration, and the product judgment needed to make data reliable for real users.",
-    "Alongside enterprise data work, I am building Shiftelix, a workforce scheduling operating system that turns scheduling, requests, messaging, compliance, and auditability into structured product workflows.",
+    "I build governed cloud data platforms where reliability, lineage, cost, and user-facing product impact have to work together.",
+    "My strongest work spans AWS lakehouse delivery, Spark transformations, Redshift/Snowflake warehousing, orchestration, and operational data models.",
+    "As founder of Shiftelix, I also own the product data model behind schedules, requests, compliance evidence, audit chains, payroll exports, reporting projections, web, and mobile.",
   ],
-  focusAreas: ["AWS data lakes", "Spark and Databricks", "Streaming pipelines", "Warehouse reliability"],
+  focusAreas: ["AWS data lakes", "Spark and Databricks", "Operational data models", "Warehouse reliability"],
   metrics: [
     { label: "Current Role", value: "S&P Global" },
     { label: "Daily Records", value: "10M+" },
-    { label: "Cost Reduction", value: "30%" },
-    { label: "Query Speed", value: "+20%" },
+    { label: "Shiftelix Core", value: "MySQL" },
+    { label: "Cloud Delivery", value: "Render" },
   ],
   skills: dataEngineeringSkills,
   projects: [
     enterpriseLakehouseProject,
     covidAnalyticsProject,
     shiftelixProject,
-    rutgersSchedulerProject,
     twitterSearchProject,
   ],
   sectionCopy: {
     about: {
       eyebrow: "About Ganesh",
-      title: "A data engineer who treats reliability, cost, lineage, and product impact as the same problem.",
+      title: "Senior data engineer building reliable platforms and product-grade operational systems.",
       impactLabel: "Signal Snapshot",
       focusLabel: "Current Focus",
     },
     skills: {
       eyebrow: "Capabilities",
-      title: "Cloud data engineering across ingestion, transformation, warehousing, and orchestration.",
+      title: "Cloud data engineering from ingestion to trusted consumption.",
       description:
-        "Hands-on experience with AWS, GCP, Spark, Databricks, streaming systems, warehouse tuning, and operational delivery for high-volume data products.",
+        "AWS, GCP, Spark, Databricks, streaming, warehouse tuning, orchestration, and quality-controlled delivery for high-volume data products.",
     },
     projects: {
       eyebrow: "Case Studies",
-      title: "Selected systems built around real data movement and operational trust.",
+      title: "Selected systems with real scale, state, and accountability.",
       description:
-        "A portfolio of enterprise migrations, healthcare ingestion, workforce operations, university scheduling, and search analytics work grounded in resume, LinkedIn, and shipped product evidence.",
+        "Enterprise migrations, healthcare ingestion, Shiftelix workforce operations, and search analytics grounded in resume, repo, and shipped-product evidence.",
     },
     experience: {
       eyebrow: "Experience",
-      title: "Enterprise data work plus founder-level product execution.",
+      title: "Enterprise data platforms plus founder-level product architecture.",
       description:
-        "From S&P Global Ratings and Quantiphi AWS engagements to Shiftelix, the common thread is building systems where data quality and operational accountability matter.",
+        "S&P Global, Quantiphi AWS work, and Shiftelix share the same bar: clear contracts, reliable data, scoped access, and accountable operations.",
     },
     education: {
       eyebrow: "Education",
-      title: "Graduate statistics and data science training behind the engineering work.",
+      title: "Graduate statistics plus a computer science engineering foundation.",
       description:
-        "Rutgers coursework in statistics, databases, time series, financial data mining, and data wrangling strengthens the platform decisions behind the work.",
+        "Rutgers graduate coursework in statistics and databases builds on Army Institute of Technology computer science training in algorithms, operating systems, networks, and database systems.",
     },
     contact: {
       eyebrow: "Contact",
@@ -818,56 +742,55 @@ const dataEngineerProfile = createBaseProfile({
 });
 
 const softwareEngineerProfile = createBaseProfile({
-  headline: "Product-Minded Software Engineer | Backend Systems | Founder, Shiftelix",
+  headline: "Software Engineer | Backend Systems | Founder, Shiftelix",
   about: [
-    "I build software around operational workflows where the database, API contract, and user experience have to agree.",
-    "Shiftelix is the clearest expression of that approach: scheduling, request workflows, team messaging, compliance rules, access scope, and audit trails packaged into a real workforce operations product.",
-    "My data engineering background makes me especially strong at backend systems where data integrity, scale, and business rules are the product.",
+    "I build workflow-heavy software where the database, API contract, permissions model, and user experience all have to agree.",
+    "Shiftelix shows that range: Node/Express services, React web, Expo mobile, MySQL migrations, Render deployment, Firebase messaging, RBAC, compliance, audit, and account lifecycle controls.",
+    "My data engineering background makes me strongest in backend systems where integrity, scale, and business rules are part of the product experience.",
   ],
-  focusAreas: ["Backend APIs", "Workflow systems", "Data-backed products", "Cloud deployment"],
+  focusAreas: ["Backend APIs", "Workflow systems", "Mobile + web products", "Cloud deployment"],
   metrics: [
     { label: "Public Product", value: "Shiftelix" },
-    { label: "Manual Work Saved", value: "30 hrs/wk" },
     { label: "Release Surface", value: "iOS" },
-    { label: "Query Latency", value: "<200ms" },
+    { label: "Backend", value: "Node" },
+    { label: "Database", value: "MySQL" },
   ],
   skills: softwareSkills,
   projects: [
     shiftelixProject,
-    rutgersSchedulerProject,
     twitterSearchProject,
     enterpriseLakehouseProject,
   ],
   sectionCopy: {
     about: {
       eyebrow: "Software Lens",
-      title: "Backend and product engineering for systems where workflow truth matters.",
+      title: "Backend and product engineering for operational software.",
       impactLabel: "Build Snapshot",
       focusLabel: "System Focus",
     },
     skills: {
       eyebrow: "Engineering Stack",
-      title: "APIs, data stores, cloud delivery, and product workflows built as one system.",
+      title: "APIs, data stores, mobile workflows, and cloud delivery.",
       description:
-        "Experience across React, Node.js, Python, REST APIs, databases, CI/CD, access controls, and cloud deployment patterns.",
+        "React, Node/Express, Expo React Native, REST APIs, MySQL, Render, Firebase messaging, CI/CD, access controls, and deployment patterns.",
     },
     projects: {
       eyebrow: "Product Work",
-      title: "Software projects where operations, data, and product UX meet.",
+      title: "Software projects with real workflow and data constraints.",
       description:
-        "Featured work includes a shipped workforce scheduling product, Rutgers scheduling automation, search analytics, and enterprise data platform services.",
+        "A shipped workforce scheduling product, search analytics, and enterprise data platform services.",
     },
     experience: {
       eyebrow: "Experience",
-      title: "Engineering experience from enterprise data platforms to shipped product systems.",
+      title: "Enterprise platform work translated into shipped product systems.",
       description:
-        "The software story is grounded in backend services, data models, release workflows, and product-grade operational systems.",
+        "Backend services, data models, auth and scope controls, release workflows, mobile surfaces, and product-grade operational systems.",
     },
     education: {
       eyebrow: "Education",
-      title: "Data science training that strengthens system design.",
+      title: "Computer science engineering and data science training behind the product work.",
       description:
-        "Graduate coursework in statistics, databases, and data wrangling supports practical decisions around schemas, workflows, and reliable data products.",
+        "Army Institute of Technology CS fundamentals and Rutgers graduate coursework in statistics, databases, and data wrangling support practical decisions around schemas, workflows, and reliable data products.",
     },
     contact: {
       eyebrow: "Contact",
@@ -882,11 +805,11 @@ const softwareEngineerProfile = createBaseProfile({
 });
 
 const dataScientistProfile = createBaseProfile({
-  headline: "Data Science and Analytics Engineer | Statistics, Search, Forecasting, and Cloud Data",
+  headline: "Data Science and Analytics Engineer | Statistics, Search, and Cloud Data",
   about: [
-    "My data science work is practical: clean the data path, make the feature or query layer trustworthy, then expose the result in a way people can use.",
-    "Rutgers graduate training in statistics and data science sits behind projects in high-volume public-health analytics, search performance, and financial/data mining coursework.",
-    "I bring engineering discipline to analytical work so models, dashboards, and exploratory systems are built on data that is reproducible and fast enough to use.",
+    "My data science work starts with the data path: clean the inputs, make the feature or query layer trustworthy, then expose the result clearly.",
+    "Rutgers statistics and data science training builds on an Army Institute of Technology CS foundation for search, public-health analytics, and financial/data mining work.",
+    "I bring engineering discipline to analytical systems so dashboards, experiments, and query tools are reproducible and fast enough to use.",
   ],
   focusAreas: ["Statistical modeling", "Search analytics", "Feature pipelines", "Dashboard-ready data"],
   metrics: [
@@ -900,12 +823,12 @@ const dataScientistProfile = createBaseProfile({
     twitterSearchProject,
     covidAnalyticsProject,
     enterpriseLakehouseProject,
-    rutgersSchedulerProject,
+    shiftelixProject,
   ],
   sectionCopy: {
     about: {
       eyebrow: "Analytics Lens",
-      title: "Analytical systems built with the engineering rigor needed before insights can be trusted.",
+      title: "Analytical systems built on reliable data paths.",
       impactLabel: "Analytics Snapshot",
       focusLabel: "Analytical Focus",
     },
@@ -913,25 +836,25 @@ const dataScientistProfile = createBaseProfile({
       eyebrow: "Data Science Stack",
       title: "Statistics, processing, search, and dashboard delivery.",
       description:
-        "A practical blend of statistical coursework, Python, SQL, Spark, data wrangling, high-performance querying, and dashboard tools.",
+        "Statistical coursework, Python, SQL, Spark, data wrangling, query optimization, and dashboard tools.",
     },
     projects: {
       eyebrow: "Analytical Work",
-      title: "Projects where query speed, data quality, and decision visibility matter.",
+      title: "Projects where speed, quality, and decision visibility matter.",
       description:
-        "Featured work spans search analytics, healthcare trend pipelines, enterprise data migration, and scheduling operations data models.",
+        "Search analytics, healthcare trend pipelines, enterprise migration, and Shiftelix scheduling operations data models.",
     },
     experience: {
       eyebrow: "Experience",
-      title: "Data engineering experience translated into stronger analytical systems.",
+      title: "Data engineering discipline applied to analytics.",
       description:
-        "The analytical thread runs through large-scale ingestion, transformation, dashboard delivery, and query optimization.",
+        "Large-scale ingestion, transformation, dashboard delivery, query optimization, and governed analytical outputs.",
     },
     education: {
       eyebrow: "Education",
-      title: "Rutgers statistics and data science foundation.",
+      title: "Statistics, data science, and computer science foundation.",
       description:
-        "Coursework in probability, statistics, regression, time series, databases, financial data mining, and data wrangling supports the analytical portfolio.",
+        "Rutgers coursework in probability, statistics, regression, time series, databases, financial data mining, and data wrangling builds on Army Institute of Technology CS coursework in algorithms and systems.",
     },
     contact: {
       eyebrow: "Contact",
@@ -948,9 +871,9 @@ const dataScientistProfile = createBaseProfile({
 const dataAnalystProfile = createBaseProfile({
   headline: "Data Analyst and BI Engineer | SQL, Dashboards, KPI Systems, and Cloud Analytics",
   about: [
-    "I build analytical views that make operations easier to understand: the ingestion has to be clean, the SQL has to be fast, and the dashboard has to answer a real decision.",
+    "I build analytical views that make operations easier to understand: clean ingestion, fast SQL, and dashboards tied to real decisions.",
     "At Quantiphi, that meant turning high-volume AWS pipelines into Redshift and QuickSight outputs for technology and healthcare stakeholders.",
-    "In project work, it meant building Twitter search analytics and Rutgers scheduling data models where performance, filters, and operational visibility mattered.",
+    "In project work, it means search analytics and scheduling data models where performance, filters, and operational visibility matter.",
   ],
   focusAreas: ["SQL analytics", "BI dashboards", "KPI systems", "Data quality"],
   metrics: [
@@ -964,12 +887,12 @@ const dataAnalystProfile = createBaseProfile({
     covidAnalyticsProject,
     twitterSearchProject,
     enterpriseLakehouseProject,
-    rutgersSchedulerProject,
+    shiftelixProject,
   ],
   sectionCopy: {
     about: {
       eyebrow: "BI Lens",
-      title: "Analytics work that connects clean pipelines to decisions people can actually make.",
+      title: "Analytics work that connects clean data to decisions.",
       impactLabel: "BI Snapshot",
       focusLabel: "Reporting Focus",
     },
@@ -977,25 +900,25 @@ const dataAnalystProfile = createBaseProfile({
       eyebrow: "Analytics Stack",
       title: "SQL, BI, data prep, and stakeholder-ready reporting.",
       description:
-        "Experience with QuickSight, Tableau, Power BI, Looker, Redshift, MySQL, Spark SQL, CTEs, stored procedures, and quality-controlled data prep.",
+        "QuickSight, Tableau, Power BI, Looker, Redshift, MySQL, Spark SQL, CTEs, stored procedures, and quality-controlled data prep.",
     },
     projects: {
       eyebrow: "Reporting Work",
-      title: "Dashboards, query systems, and operational analytics with real performance constraints.",
+      title: "Dashboards and query systems with real performance constraints.",
       description:
-        "Selected work covers healthcare dashboards, Twitter search analytics, warehouse tuning, and workforce operations data products.",
+        "Healthcare dashboards, Twitter search analytics, warehouse tuning, and workforce operations data products.",
     },
     experience: {
       eyebrow: "Experience",
       title: "Analytics delivery rooted in production data engineering.",
       description:
-        "The analyst profile focuses on the dashboard, SQL, stakeholder, and KPI layer of the same cloud data engineering work.",
+        "Dashboard, SQL, stakeholder, and KPI delivery built on the same cloud data engineering foundation.",
     },
     education: {
       eyebrow: "Education",
-      title: "Graduate coursework that sharpens analytical judgment.",
+      title: "Engineering and graduate coursework that sharpen analytical judgment.",
       description:
-        "Statistics, time series, advanced database management, financial data mining, and data wrangling shape the analytical approach.",
+        "Army Institute of Technology computer science training plus Rutgers coursework in statistics, time series, advanced databases, financial data mining, and data wrangling shape the analytical approach.",
     },
     contact: {
       eyebrow: "Contact",

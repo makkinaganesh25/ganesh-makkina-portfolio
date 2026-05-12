@@ -6,7 +6,10 @@
   "scripts": {
     "start": "vite --port=3000 --strictPort --host=0.0.0.0",
     "dev": "vite --port=3000 --strictPort --host=0.0.0.0",
+    "test": "tsx scripts/validate-portfolio.ts",
+    "prebuild": "npm run test",
     "build": "vite build",
+    "prebuild:pages": "npm run test",
     "build:pages": "vite build && tsx scripts/build-pages.ts",
     "preview": "vite preview",
     "clean": "rm -rf dist",

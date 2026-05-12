@@ -27,15 +27,17 @@
 
 - Install: `npm install`
 - Dev server: `npm run dev`
+- Portfolio regression tests: `npm run test`
 - Typecheck: `npm run lint`
 - Production build: `npm run build`
 - Preview build: `npm run preview`
 
-`npm run lint` is TypeScript-only today. There is no ESLint or automated browser test suite in this repo yet.
+`npm run lint` is TypeScript-only today. `npm run test` validates portfolio content and layout contracts, including Shiftelix/Rutgers consolidation, visible previous-site links, education/location proof, and compact footer rules. There is no automated browser test suite in this repo yet.
 
 ## Verification Flow
 
 - Always run `npm run lint`.
+- Always run `npm run test`.
 - Always run `npm run build`.
 - If a task changes repo-facing architecture, routes, shared contracts, debugging guidance, or workflow expectations, update [`code_repo_update.md`](code_repo_update.md) and any linked docs in the same task.
 - Stay on `main` unless the user explicitly asks for a different branch.

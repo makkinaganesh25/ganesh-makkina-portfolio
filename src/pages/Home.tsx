@@ -204,6 +204,26 @@ function AnimatedSectionIntro({
   );
 }
 
+function getHeroProofItems(portfolioData: PortfolioData) {
+  const currentCompany = portfolioData.experience[0]?.company.replace(" Ratings", "") ?? "S&P Global";
+  const hasShiftelixIos = portfolioData.projects.some(
+    (project) => project.id === "shiftelix-workforce-os" && project.impactMetrics.some((metric) => metric.value === "iOS")
+  );
+  const hasRutgers = portfolioData.education.some((entry) => entry.school.includes("Rutgers"));
+  const hasArmyInstitute = portfolioData.education.some((entry) => entry.school.includes("Army Institute"));
+  const location = portfolioData.personal.location.includes("New York City")
+    ? "NYC Metro Area"
+    : portfolioData.personal.location;
+
+  return [
+    { label: "Current", value: currentCompany },
+    { label: "Shipped", value: hasShiftelixIos ? "Shiftelix iOS" : "Shiftelix" },
+    { label: "Graduate", value: hasRutgers ? "Rutgers MS" : "Rutgers" },
+    { label: "CS", value: hasArmyInstitute ? "AIT CS" : "Computer Science" },
+    { label: "Base", value: location },
+  ];
+}
+
 function HomeScrollContent({
   canvasMode,
   portfolioData,
@@ -227,6 +247,8 @@ function HomeScrollContent({
   sectionIntroClassName: string;
   motionViewportRoot?: RefObject<Element | null>;
 }) {
+  const heroProofItems = getHeroProofItems(portfolioData);
+
   return (
     <div
       ref={containerRef}
@@ -269,6 +291,18 @@ function HomeScrollContent({
           <p className="mx-auto mb-6 max-w-3xl text-lg leading-relaxed text-gray-400 md:mb-7 md:text-xl">
             {portfolioData.personal.headline}
           </p>
+
+          <div className="mb-5 flex max-w-5xl flex-wrap items-center justify-center gap-2">
+            {heroProofItems.map((item) => (
+              <span
+                key={`${item.label}-${item.value}`}
+                className="inline-flex min-h-10 items-center gap-2 rounded-full border border-white/10 bg-black/45 px-3.5 py-2 text-left shadow-[0_12px_35px_rgba(0,0,0,0.22)] backdrop-blur-md"
+              >
+                <span className="text-[9px] font-bold uppercase tracking-[0.22em] text-emerald-300/80">{item.label}</span>
+                <span className="text-xs font-semibold text-white md:text-[13px]">{item.value}</span>
+              </span>
+            ))}
+          </div>
 
           <div className="mb-7 flex flex-wrap items-center justify-center gap-2.5 md:mb-8 md:gap-3">
             {portfolioData.personal.focusAreas.map((area) => (
@@ -481,7 +515,7 @@ function HomeScrollContent({
       <section
         id="contact"
         data-home-scroll-section="contact"
-        className="relative overflow-hidden px-6 pt-16 pb-14 md:pt-24 md:pb-20"
+        className="relative overflow-hidden px-6 pt-16 pb-0 md:pt-24"
       >
         <div aria-hidden className="absolute inset-x-0 top-0 h-full bg-[radial-gradient(circle_at_72%_34%,rgba(16,185,129,0.14),transparent_40%)]" />
         <div className="pointer-events-auto relative z-10 max-w-5xl mx-auto">
@@ -598,7 +632,7 @@ function HomeScrollContent({
       <section
         aria-label="Footer"
         data-home-scroll-section="footer"
-        className="pointer-events-auto relative z-10 w-full bg-[linear-gradient(180deg,rgba(0,0,0,0)_0%,rgba(0,0,0,0.62)_28%,#000_100%)] pt-8 md:pt-10"
+        className="pointer-events-auto relative z-10 w-full bg-black"
       >
         <Footer portfolioData={portfolioData} />
       </section>

@@ -36,6 +36,14 @@ This file is the rolling repo-update index for contributor-facing changes. Updat
 
 ### 2026-05-11
 
+- Added a portfolio regression test command to keep future content/layout edits from reintroducing recent issues:
+  - `npm run test` runs `scripts/validate-portfolio.ts`
+  - `npm run build` and `npm run build:pages` now run the regression test first through npm pre-scripts
+  - the test checks Shiftelix/Rutgers consolidation, education/location proof, visible previous-site link removal, archive preservation, and compact footer layout rules
+- Corrected the homepage footer layout contract so the footer wrapper stays content-height instead of reserving viewport-height space, and tightened `scripts/validate-portfolio.ts` to reject future fake footer/contact spacer classes.
+
+### 2026-05-11
+
 - Repurposed the portfolio for Ganesh Makkina while preserving the existing React/Vite/Three.js architecture:
   - `src/data/portfolioData.ts` now uses Ganesh's resume, public LinkedIn/Shiftelix evidence, and GitHub profile context across the role-specific profile routes
   - `public/profile.jpg` and `public/resume.pdf` were replaced with Ganesh's supplied headshot and resume

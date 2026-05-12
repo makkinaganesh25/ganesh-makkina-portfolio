@@ -13,7 +13,6 @@ import { twMerge } from "tailwind-merge";
 import { getEmailComposeUrl } from "../utils/contact";
 import { getProfileHashPath, getProfileHomePath } from "../utils/profileRoutes";
 import { createHomeRestoreState, hasHomeScrollSnapshot, type PortfolioRouteState } from "../utils/homeScrollState";
-import { withBasePath } from "../utils/publicAsset";
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -45,7 +44,6 @@ export function Navbar({
   const navLinks = useProfileNavLinks(profileSlug);
   const homePath = getProfileHomePath(profileSlug);
   const canRestoreHomeScroll = location.pathname !== homePath && hasHomeScrollSnapshot(profileSlug);
-  const previousSitePath = withBasePath("archive/previous-site/index.html");
 
   useEffect(() => {
     if (location.pathname === homePath) {
@@ -157,14 +155,6 @@ export function Navbar({
             })()
           ))}
           <a
-            href={previousSitePath}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-sm font-medium text-gray-400 transition-colors hover:text-emerald-400"
-          >
-            Previous Site
-          </a>
-          <a
             href={portfolioData.personal.resume}
             target="_blank"
             rel="noopener noreferrer"
@@ -207,15 +197,6 @@ export function Navbar({
               })()
             ))}
             <a
-              href={previousSitePath}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-lg font-medium text-gray-300"
-              onClick={() => setIsOpen(false)}
-            >
-              Previous Site
-            </a>
-            <a
               href={portfolioData.personal.resume}
               target="_blank"
               rel="noopener noreferrer"
@@ -232,10 +213,8 @@ export function Navbar({
 }
 
 export function Footer({ portfolioData }: { portfolioData: PortfolioData }) {
-  const previousSitePath = withBasePath("archive/previous-site/index.html");
-
   return (
-    <footer className="w-full border-t border-white/8 bg-black/92 px-6 py-6 backdrop-blur-md md:py-5">
+    <footer className="w-full border-t border-white/8 bg-black px-6 py-6 md:py-5">
       <div className="mx-auto grid max-w-7xl gap-4 md:grid-cols-[minmax(0,1fr)_auto_auto] md:items-center md:gap-6">
         <div className="text-center md:text-left">
           <h3 className="text-lg font-semibold tracking-tight text-white">{portfolioData.personal.name}</h3>
@@ -278,15 +257,6 @@ export function Footer({ portfolioData }: { portfolioData: PortfolioData }) {
         </div>
 
         <div className="text-center text-[11px] font-medium tracking-[0.08em] text-gray-600 md:text-right">
-          <a
-            href={previousSitePath}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="transition-colors hover:text-gray-300"
-          >
-            Previous site archive
-          </a>
-          <span className="mx-2 text-gray-700">/</span>
           © {new Date().getFullYear()} {portfolioData.personal.name}. All rights reserved.
         </div>
       </div>

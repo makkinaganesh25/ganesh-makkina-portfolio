@@ -335,8 +335,8 @@ export default function ProjectDetail() {
                 <SectionHeading
                   icon={Target}
                   eyebrow="Problem Framing"
-                  title="The problem, the business stakes, and the delivery lens."
-                  description="This section makes the work legible fast: what had to change, why it mattered, and how the project was framed from this role's perspective."
+                  title="Problem, stakes, and role fit."
+                  description="What the system had to solve, why the work mattered, and where the role-specific engineering judgment shows up."
                   accentHex={theme.accentHex}
                 />
                 <div className="grid gap-6 lg:grid-cols-2">
@@ -355,8 +355,8 @@ export default function ProjectDetail() {
                 <SectionHeading
                   icon={Radar}
                   eyebrow="Context and Ownership"
-                  title="The context, scope, and the work I directly carried."
-                  description="The page now calls out concrete ownership instead of leaving the reader to infer it from generic summary text."
+                  title="Context and direct ownership."
+                  description="Concrete scope, delivery context, and the parts of the system I directly carried."
                   accentHex={theme.accentHex}
                 />
                 <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)]">
@@ -382,8 +382,8 @@ export default function ProjectDetail() {
                 <SectionHeading
                   icon={Waypoints}
                   eyebrow="Architecture and Flow"
-                  title="System design translated into a clearer, non-overlapping workflow view."
-                  description="The old wide single-row flow caused collisions with the side rail. This version keeps the architecture readable at laptop widths and still feels deliberate on large screens."
+                  title="Architecture and workflow path."
+                  description="How data, users, services, and operational decisions move through the system."
                   accentHex={theme.accentHex}
                 />
                 <AccentPanel accentHex={theme.accentHex}>
@@ -420,8 +420,8 @@ export default function ProjectDetail() {
                 <SectionHeading
                   icon={Workflow}
                   eyebrow="Implementation"
-                  title="The main execution moves and the technical decisions behind them."
-                  description="This is where the page shifts from outcome headlines into the practical engineering, modeling, or analytical choices that made the project work."
+                  title="Implementation choices."
+                  description="The practical engineering moves, data-model choices, and delivery decisions behind the result."
                   accentHex={theme.accentHex}
                 />
                 <div className="grid gap-6 lg:grid-cols-2">
@@ -499,8 +499,8 @@ export default function ProjectDetail() {
               <SectionHeading
                 icon={Sparkles}
                 eyebrow="Outcomes and Signal"
-                title="What changed, what the results say, and what hiring teams should take away."
-                description="The goal here is not just to list outcomes, but to make the depth, rigor, and role fit obvious to a recruiter in one fast scan."
+                title="Outcomes and hiring signal."
+                description="Evidence of shipping, scale, or performance, plus the engineering judgment the work demonstrates."
                 accentHex={theme.accentHex}
               />
               <div className="grid gap-6 xl:grid-cols-[minmax(0,1.12fr)_360px]">
