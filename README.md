@@ -20,27 +20,27 @@ Useful commands:
 
 ## GitHub Pages Deployment
 
-This repo is configured for GitHub Pages project-site hosting at:
+This repo is configured for GitHub Pages root user-site hosting at:
 
-- `https://makkinaganesh25.github.io/ganesh-makkina-portfolio/`
+- `https://makkinaganesh25.github.io/`
 
 Role-specific entry URLs:
 
-- `https://makkinaganesh25.github.io/ganesh-makkina-portfolio/dataengineer`
-- `https://makkinaganesh25.github.io/ganesh-makkina-portfolio/softwareengineer`
-- `https://makkinaganesh25.github.io/ganesh-makkina-portfolio/datascientist`
-- `https://makkinaganesh25.github.io/ganesh-makkina-portfolio/datanalyst`
+- `https://makkinaganesh25.github.io/dataengineer`
+- `https://makkinaganesh25.github.io/softwareengineer`
+- `https://makkinaganesh25.github.io/datascientist`
+- `https://makkinaganesh25.github.io/datanalyst`
 
-Production builds use the Vite base path `/ganesh-makkina-portfolio/`, and the app router uses the same runtime base. Public assets such as the profile image, resume, and optional audio files resolve through that base path so they continue to work from the project-site URL without touching the existing root `makkinaganesh25.github.io` repository.
+Production builds use the Vite base path `/`, and the app router uses the same runtime base. Public assets such as the profile image and resume resolve from the root user-site URL so the app does not generate duplicated project-site URLs.
 
-The previous static Ganesh portfolio is preserved under `public/archive/previous-site/` and is linked from the current navigation/footer as "Previous Site".
+The previous static Ganesh portfolio is preserved under `public/archive/previous-site/` as an archive, but it is not linked from the current navigation or footer.
 
 For GitHub Pages builds, use:
 
 1. `npm run lint`
 2. `npm run build:pages`
 
-`build:pages` also creates `dist/404.html`, `dist/.nojekyll`, and static `index.html` entry points for every profile homepage plus every profile-scoped and legacy project route. That keeps direct GitHub Pages hits like `/dataengineer` and `/softwareengineer/project/shiftelix-workforce-os` on a `200` path instead of relying only on the SPA `404` fallback. The repo publishes through GitHub Actions from `main` using `.github/workflows/deploy.yml`.
+`build:pages` also creates `dist/404.html`, `dist/.nojekyll`, and static `index.html` entry points for every profile homepage plus every profile-scoped and legacy project route. That keeps direct GitHub Pages hits like `/dataengineer` and `/softwareengineer/project/shiftelix-workforce-os` on a `200` path instead of relying only on the SPA `404` fallback. The Pages workflow only deploys when this source is pushed to `makkinaganesh25/makkinaganesh25.github.io`, preventing the project repo from publishing a root-base build under the old project-site path.
 
 ## Current Stack
 

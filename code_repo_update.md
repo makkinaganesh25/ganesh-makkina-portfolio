@@ -36,6 +36,19 @@ This file is the rolling repo-update index for contributor-facing changes. Updat
 
 ### 2026-05-12
 
+- Switched the production GitHub Pages target from the project-site path to the root user-site path:
+  - `vite.config.ts` now uses production base `/` so generated assets and routes resolve under `https://makkinaganesh25.github.io/`
+  - `README.md` now documents the root Pages URLs (`/dataengineer`, `/softwareengineer`, `/datascientist`, `/datanalyst`) and removes the old project-site URL guidance
+  - `.github/workflows/deploy.yml` now deploys only from `makkinaganesh25/makkinaganesh25.github.io`, so the project repo cannot publish a root-base artifact under the old `/ganesh-makkina-portfolio/` URL
+  - the previous static site remains archived under `public/archive/previous-site/` but is still not exposed as a visible nav/footer item
+
+- Upgraded the homepage lower-scene visual contract from generic space/ship effects into a section-specific data infrastructure journey:
+  - `StoryScene` now uses a subtle bounded infrastructure backplane with lower star counts and no global particle burst or floating space object
+  - `HeroScene` now uses plain geometry for identity-signal orbits instead of Drei trail/line helpers, avoiding MeshLine console errors and keeping the hero lightweight
+  - `HomeLowerScene` now gives projects product orbit nodes and database shards, experience service-grid and observability pulse geometry, education a centered Rutgers academic data core, and contact a calm signal-line field
+  - `homeSceneData` now anchors education with Rutgers core offsets and contact with signal-line data while keeping lightweight-mode object counts bounded
+  - `scripts/validate-portfolio.ts` locks the new scene contract, including no education spaceship motif, no noisy lower-scene particle bursts, no large green/teal bubble, lite-mode postprocessing safety, bounded star counts, and the contact signal-field gate
+
 - Added the cinematic homepage tile-motion contract:
   - `src/components/HomeMotion.tsx` now owns the shared `ScrollRevealTile` primitive for one-time tile pop-ins, scroll-root-aware parallax, and reduced-motion fallback behavior
   - homepage hero, about, skill, project, experience, education, and contact tile surfaces now use the shared reveal primitive without changing measured section order or footer scroll math

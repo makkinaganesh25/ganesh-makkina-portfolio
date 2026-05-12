@@ -715,24 +715,24 @@ function HomeScrollContent({
             className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-black/[0.58] px-6 py-8 shadow-[0_0_80px_rgba(0,0,0,0.34)] backdrop-blur-xl md:px-10 md:py-10"
           >
             <div aria-hidden className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(16,185,129,0.16),transparent_56%)]" />
-            <div className="relative grid gap-8 lg:grid-cols-[1.05fr_0.95fr] lg:items-start">
+            <div className="relative grid min-w-0 gap-8 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] lg:items-start">
               <ScrollRevealTile
                 variant="panel"
                 tone="emerald"
                 viewportRoot={motionViewportRoot}
-                className="text-center lg:text-left"
+                className="min-w-0 text-center lg:text-left"
               >
                 <span className="mb-4 block text-xs font-bold uppercase tracking-widest text-emerald-400">
                   {portfolioData.sectionCopy.contact.eyebrow}
                 </span>
-                <h2 className="mb-4 text-3xl font-bold tracking-tighter text-white md:text-5xl">
+                <h2 className="mb-4 max-w-full break-words text-[2rem] font-bold leading-[1.04] tracking-tighter text-white sm:text-3xl md:text-5xl">
                   {portfolioData.sectionCopy.contact.title}
                 </h2>
                 <p className="max-w-2xl text-sm leading-relaxed text-gray-300 md:text-base">
                   {portfolioData.sectionCopy.contact.description}
                 </p>
 
-                <div className="mt-6 flex flex-wrap justify-center gap-3 lg:justify-start">
+                <div className="mt-6 flex min-w-0 flex-wrap justify-center gap-3 lg:justify-start">
                   {portfolioData.sectionCopy.contact.chips.map((chip, index) => (
                     <ScrollRevealTile
                       as="span"
@@ -754,9 +754,9 @@ function HomeScrollContent({
                     tone="emerald"
                     viewportRoot={motionViewportRoot}
                     index={portfolioData.sectionCopy.contact.chips.length}
-                    className="inline-flex"
+                    className="inline-flex max-w-full"
                   >
-                    <span className="rounded-full border border-emerald-400/18 bg-emerald-400/[0.04] px-3.5 py-2 text-[10px] font-bold uppercase tracking-[0.22em] text-emerald-200">
+                    <span className="max-w-full whitespace-normal break-words rounded-2xl border border-emerald-400/18 bg-emerald-400/[0.04] px-3.5 py-2 text-center text-[10px] font-bold uppercase leading-relaxed tracking-[0.22em] text-emerald-200">
                       {portfolioData.personal.location}
                     </span>
                   </ScrollRevealTile>
@@ -805,7 +805,7 @@ function HomeScrollContent({
                 tone="emerald"
                 viewportRoot={motionViewportRoot}
                 index={1}
-                className="rounded-[1.5rem] border border-white/10 bg-white/[0.03] p-5 text-left shadow-[0_18px_50px_rgba(0,0,0,0.22)] backdrop-blur-md md:p-6"
+                className="min-w-0 rounded-[1.5rem] border border-white/10 bg-white/[0.03] p-5 text-left shadow-[0_18px_50px_rgba(0,0,0,0.22)] backdrop-blur-md md:p-6"
               >
                 <div className="mb-5 border-b border-white/8 pb-4">
                   <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-gray-500">

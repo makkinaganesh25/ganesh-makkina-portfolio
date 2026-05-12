@@ -4,7 +4,7 @@
  */
 
 import { useFrame, useThree } from "@react-three/fiber";
-import { useScroll, Float, Stars, Sparkles } from "@react-three/drei";
+import { useScroll, Stars } from "@react-three/drei";
 import { useMemo, useRef } from "react";
 import * as THREE from "three";
 import { HeroScene } from "./HeroScene";
@@ -32,6 +32,50 @@ function ScenePostEffects({ liteMode }: { liteMode: boolean }) {
   );
 }
 
+function InfrastructureBackplane({ liteMode }: { liteMode: boolean }) {
+  const backplaneRef = useRef<THREE.Group>(null!);
+  const railCount = liteMode ? 5 : 8;
+  const rails = useMemo(
+    () =>
+      Array.from({ length: railCount }, (_, index) => ({
+        width: 10 + index * 1.1,
+        y: -2.9 + index * 0.48,
+        z: -18 - index * 6,
+        tone: index % 3 === 0 ? "#38bdf8" : index % 3 === 1 ? "#34d399" : "#fbbf24",
+        opacity: liteMode ? 0.035 : 0.052,
+      })),
+    [liteMode, railCount]
+  );
+
+  useFrame((state) => {
+    if (!backplaneRef.current) return;
+    const elapsed = state.clock.getElapsedTime();
+    backplaneRef.current.rotation.z = Math.sin(elapsed * 0.035) * 0.018;
+    backplaneRef.current.position.x = Math.sin(elapsed * 0.06) * 0.18;
+  });
+
+  return (
+    <group ref={backplaneRef} position={[0, -0.25, -38]} rotation={[0.18, -0.16, 0]}>
+      {rails.map((rail, index) => (
+        <group key={`infrastructure-backplane-${index}`} position={[0, rail.y, rail.z]}>
+          <mesh>
+            <boxGeometry args={[rail.width, 0.012, 0.025]} />
+            <meshBasicMaterial color={rail.tone} transparent opacity={rail.opacity} depthWrite={false} toneMapped={false} />
+          </mesh>
+          <mesh position={[rail.width * -0.28, 0.22, 0]}>
+            <boxGeometry args={[0.012, 0.44, 0.025]} />
+            <meshBasicMaterial color={rail.tone} transparent opacity={rail.opacity * 0.82} depthWrite={false} toneMapped={false} />
+          </mesh>
+          <mesh position={[rail.width * 0.24, -0.2, 0]}>
+            <boxGeometry args={[0.012, 0.4, 0.025]} />
+            <meshBasicMaterial color={rail.tone} transparent opacity={rail.opacity * 0.68} depthWrite={false} toneMapped={false} />
+          </mesh>
+        </group>
+      ))}
+    </group>
+  );
+}
+
 function ReactiveLight() {
   const lightRef = useRef<THREE.Group>(null!);
 
@@ -55,7 +99,7 @@ function ReactiveLight() {
   return (
     <group position={[0, 0, -170]}>
       <group ref={lightRef}>
-        <pointLight color="#0d9488" intensity={50} distance={80} decay={2} />
+        <pointLight color="#38bdf8" intensity={30} distance={76} decay={2} />
       </group>
     </group>
   );
@@ -176,24 +220,13 @@ export function StoryScene({
   return (
     <>
       <fog attach="fog" args={["#000000", 8, 45]} />
-      <Stars radius={50} depth={150} count={liteMode ? 1200 : 2800} factor={4} saturation={0} fade speed={liteMode ? 0.5 : 1.1} />
-      {!liteMode && (
-        <Sparkles count={620} scale={[40, 40, 150]} position={[0, 0, -75]} size={1.7} speed={0.16} opacity={0.1} color="#10b981" />
-      )}
+      <Stars radius={50} depth={150} count={liteMode ? 420 : 950} factor={2.4} saturation={0} fade speed={liteMode ? 0.18 : 0.42} />
+      <InfrastructureBackplane liteMode={liteMode} />
 
       <group ref={group}>
         <group position={[0, 0, 0]}>
           <HeroScene heroAnchor={heroAnchor} heroIntroProgress={heroIntroProgress} liteMode={liteMode} />
         </group>
-
-        {!liteMode && <group position={[5, 0, -40]}>
-          <Float speed={2} rotationIntensity={2} floatIntensity={2}>
-            <mesh>
-              <icosahedronGeometry args={[3, 1]} />
-              <meshStandardMaterial color="#10b981" wireframe transparent opacity={0.14} />
-            </mesh>
-          </Float>
-        </group>}
 
         <HomeLowerScene sectionRanges={sectionRanges} liteMode={liteMode} />
 

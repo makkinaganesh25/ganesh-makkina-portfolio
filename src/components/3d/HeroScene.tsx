@@ -4,7 +4,6 @@
  */
 
 import { useFrame, useThree } from "@react-three/fiber";
-import { Line, Trail } from "@react-three/drei";
 import { useMemo, useRef } from "react";
 import * as THREE from "three";
 import type { MotionValue } from "motion/react";
@@ -35,7 +34,6 @@ function DataStream({
   yOffset,
   introProgress,
   trailWidth = 1.9,
-  trailLength = 8,
 }: {
   radius: number;
   speed: number;
@@ -43,9 +41,10 @@ function DataStream({
   yOffset: number;
   introProgress: MotionValue<number>;
   trailWidth?: number;
-  trailLength?: number;
 }) {
   const ref = useRef<THREE.Group>(null!);
+  const ringRef = useRef<THREE.Mesh>(null!);
+  const nodeRef = useRef<THREE.Mesh>(null!);
 
   useFrame((state) => {
     const time = state.clock.getElapsedTime();
@@ -53,16 +52,21 @@ function DataStream({
     ref.current.rotation.y = time * speed * (0.88 + intro * 0.3);
     ref.current.rotation.z = Math.sin(time * 0.25 + radius) * (0.035 + intro * 0.015);
     ref.current.position.y = yOffset + Math.sin(time * 0.45 + radius) * 0.04 * (0.35 + intro * 0.4);
+    ringRef.current.rotation.z = time * 0.04 * Math.sign(speed);
+    (ringRef.current.material as THREE.MeshBasicMaterial).opacity = 0.055 + intro * 0.035;
+    (nodeRef.current.material as THREE.MeshBasicMaterial).opacity = 0.5 + intro * 0.18;
   });
 
   return (
     <group ref={ref} position={[0, yOffset, 0]}>
-      <Trail width={trailWidth} length={trailLength} color={new THREE.Color(color)} attenuation={(t) => t * t}>
-        <mesh position={[radius, 0, 0]}>
-          <sphereGeometry args={[0.045, 16, 16]} />
-          <meshBasicMaterial color={color} />
-        </mesh>
-      </Trail>
+      <mesh ref={ringRef} rotation={[Math.PI / 2.4, 0, 0]}>
+        <torusGeometry args={[radius, Math.max(0.005, trailWidth * 0.0032), 8, 128]} />
+        <meshBasicMaterial color={color} transparent opacity={0.07} depthWrite={false} toneMapped={false} />
+      </mesh>
+      <mesh ref={nodeRef} position={[radius, 0, 0]}>
+        <sphereGeometry args={[0.045, 16, 16]} />
+        <meshBasicMaterial color={color} transparent opacity={0.58} depthWrite={false} toneMapped={false} />
+      </mesh>
     </group>
   );
 }
@@ -107,12 +111,12 @@ function OrchestrationNodes({ introProgress }: { introProgress: MotionValue<numb
   const nodesRef = useRef<THREE.Group>(null!);
 
   const nodes = useMemo(() => {
-    return Array.from({ length: 10 }).map((_, index) => {
-      const angle = (index / 10) * Math.PI * 2;
-      const radius = 2.45 + Math.sin(index * 1.7) * 0.72 + 0.7;
+    return Array.from({ length: 6 }).map((_, index) => {
+      const angle = (index / 6) * Math.PI * 2;
+      const radius = 2.6 + Math.sin(index * 1.7) * 0.38;
       return new THREE.Vector3(
         Math.cos(angle) * radius,
-        Math.sin(index * 1.35) * 0.36,
+        Math.sin(index * 1.35) * 0.22,
         Math.sin(angle) * radius
       );
     });
@@ -130,16 +134,9 @@ function OrchestrationNodes({ introProgress }: { introProgress: MotionValue<numb
       {nodes.map((position, index) => (
         <group key={index} position={position}>
           <mesh>
-            <octahedronGeometry args={[0.065]} />
+            <octahedronGeometry args={[0.052]} />
             <meshStandardMaterial color="#34d399" emissive="#34d399" emissiveIntensity={0.45} wireframe />
           </mesh>
-          <Line
-            points={[[0, 0, 0], [-position.x, -position.y, -position.z]]}
-            color={index % 3 === 1 ? "#3b82f6" : "#10b981"}
-            transparent
-            opacity={0.1}
-            lineWidth={0.45}
-          />
         </group>
       ))}
     </group>
@@ -240,16 +237,14 @@ export function HeroScene({
         yOffset={0.36}
         introProgress={heroIntroProgress}
         trailWidth={liteMode ? 1.8 : 2.55}
-        trailLength={liteMode ? 6 : 11}
       />
       <DataStream
         radius={liteMode ? 2.72 : 2.88}
         speed={-0.78}
-        color={liteMode ? "#10b981" : "#8b5cf6"}
+        color={liteMode ? "#10b981" : "#f59e0b"}
         yOffset={0.02}
         introProgress={heroIntroProgress}
         trailWidth={liteMode ? 1.35 : 1.8}
-        trailLength={liteMode ? 5 : 8}
       />
       {!liteMode && <DataStream radius={3.42} speed={0.48} color="#f59e0b" yOffset={0.72} introProgress={heroIntroProgress} />}
       {!liteMode && <DataStream radius={4.25} speed={1.32} color="#10b981" yOffset={-0.28} introProgress={heroIntroProgress} />}

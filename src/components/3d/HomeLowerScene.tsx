@@ -1,5 +1,5 @@
 import { useFrame, useThree } from "@react-three/fiber";
-import { useScroll, Sparkles } from "@react-three/drei";
+import { useScroll } from "@react-three/drei";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import {
@@ -252,15 +252,20 @@ function useSceneProfile(forceLite = false) {
       projectLanes: simplified ? 2 : tablet ? 3 : homeSceneData.projects.lanes.length,
       projectCallouts: simplified ? 0 : tablet ? 3 : 6,
       projectNodes: simplified ? 2 : tablet ? 3 : homeSceneData.projects.nodes.length,
+      projectOrbitNodes: simplified ? 0 : tablet ? 4 : 6,
+      projectShardStacks: simplified ? 2 : tablet ? 3 : 4,
       packetsPerLane: simplified ? 1 : tablet ? 2 : 3,
       experienceCallouts: simplified ? 0 : tablet ? 2 : 4,
       experienceNodes: simplified ? 4 : tablet ? 5 : homeSceneData.experience.nodes.length,
       experienceConnections: simplified ? 4 : tablet ? 6 : homeSceneData.experience.connections.length,
       experiencePacketsPerRail: simplified ? 0 : tablet ? 1 : 2,
+      serviceGridUnits: simplified ? 5 : tablet ? 8 : 12,
+      observabilityPulses: simplified ? 0 : tablet ? 2 : 3,
       educationRibbons: simplified ? 1 : tablet ? 2 : homeSceneData.education.ribbons.length,
       educationNodes: simplified ? 2 : tablet ? 3 : homeSceneData.education.nodes.length,
       educationPackets: simplified ? 0 : tablet ? 1 : 2,
-      contactParticles: simplified ? 5 : tablet ? 7 : homeSceneData.contact.particles.length,
+      contactSignals: simplified ? 2 : tablet ? 2 : homeSceneData.contact.signalLines.length,
+      contactParticles: simplified ? 4 : tablet ? 5 : 6,
       simplified,
       tablet,
     };
@@ -345,58 +350,6 @@ function BrandPlate({
           opacity={opacity}
           depthWrite={false}
           toneMapped={false}
-        />
-      </mesh>
-    </group>
-  );
-}
-
-function ThrusterFlare({
-  position,
-  tone,
-  scale,
-  registerMaterial,
-}: {
-  position: [number, number, number];
-  tone: SceneTone;
-  scale: number;
-  registerMaterial: (material: OpacityMaterial | null) => void;
-}) {
-  return (
-    <group position={position}>
-      <mesh scale={[scale, scale, scale]}>
-        <sphereGeometry args={[0.14, 20, 20]} />
-        <meshBasicMaterial
-          ref={registerMaterial}
-          color={TONE_COLORS[tone]}
-          transparent
-          opacity={0.88}
-          depthWrite={false}
-          toneMapped={false}
-        />
-      </mesh>
-      <mesh position={[0, 0, -0.52 * scale]} rotation={[Math.PI / 2, 0, 0]}>
-        <coneGeometry args={[0.14 * scale, 1.1 * scale, 18, 1, true]} />
-        <meshBasicMaterial
-          ref={registerMaterial}
-          color={TONE_COLORS[tone]}
-          transparent
-          opacity={0.18}
-          depthWrite={false}
-          toneMapped={false}
-          side={THREE.DoubleSide}
-        />
-      </mesh>
-      <mesh rotation={[Math.PI / 2, 0, 0]}>
-        <ringGeometry args={[0.13 * scale, 0.22 * scale, 32]} />
-        <meshBasicMaterial
-          ref={registerMaterial}
-          color={TONE_COLORS[tone]}
-          transparent
-          opacity={0.26}
-          depthWrite={false}
-          toneMapped={false}
-          side={THREE.DoubleSide}
         />
       </mesh>
     </group>
@@ -626,6 +579,242 @@ function WireLatticePlane({
   );
 }
 
+function ProductOrbitSystem({
+  nodeCount,
+  registerMaterial,
+}: {
+  nodeCount: number;
+  registerMaterial: (material: OpacityMaterial | null) => void;
+}) {
+  const orbitRef = useRef<THREE.Group>(null!);
+  const nodes = useMemo(
+    () =>
+      Array.from({ length: nodeCount }, (_, index) => {
+        const angle = (index / Math.max(1, nodeCount)) * Math.PI * 2;
+        const radius = 1.34 + (index % 2) * 0.42;
+        return {
+          position: [Math.cos(angle) * radius, Math.sin(index * 1.4) * 0.18 + 0.2, Math.sin(angle) * radius] as const,
+          tone: (index % 3 === 0 ? "blue" : index % 3 === 1 ? "emerald" : "amber") as SceneTone,
+          scale: index % 2 === 0 ? 1 : 0.82,
+        };
+      }),
+    [nodeCount]
+  );
+
+  useFrame((state) => {
+    if (!orbitRef.current) return;
+    const elapsed = state.clock.getElapsedTime();
+    orbitRef.current.rotation.y = elapsed * 0.075;
+    orbitRef.current.rotation.x = Math.sin(elapsed * 0.16) * 0.045;
+  });
+
+  if (nodeCount === 0) return null;
+
+  return (
+    <group ref={orbitRef} position={[1.24, 0.38, 2.5]} rotation={[0.1, 0.2, -0.08]}>
+      <mesh rotation={[Math.PI / 2.25, 0.14, 0]}>
+        <torusGeometry args={[1.62, 0.01, 10, 96]} />
+        <meshBasicMaterial
+          ref={registerMaterial}
+          color="#38bdf8"
+          transparent
+          opacity={0.13}
+          depthWrite={false}
+          toneMapped={false}
+        />
+      </mesh>
+      {nodes.map((node, index) => (
+        <group key={`product-orbit-node-${index}`} position={node.position}>
+          <mesh scale={[0.26 * node.scale, 0.16 * node.scale, 0.08 * node.scale]}>
+            <boxGeometry args={[1, 1, 1]} />
+            <meshPhysicalMaterial
+              ref={registerMaterial}
+              color={TONE_COLORS[node.tone]}
+              metalness={0.12}
+              roughness={0.22}
+              transmission={0.36}
+              thickness={0.08}
+              transparent
+              opacity={0.32}
+            />
+          </mesh>
+          <mesh scale={[0.3 * node.scale, 0.2 * node.scale, 0.1 * node.scale]}>
+            <boxGeometry args={[1, 1, 1]} />
+            <meshBasicMaterial
+              ref={registerMaterial}
+              color={TONE_COLORS[node.tone]}
+              wireframe
+              transparent
+              opacity={0.12}
+              depthWrite={false}
+              toneMapped={false}
+            />
+          </mesh>
+        </group>
+      ))}
+    </group>
+  );
+}
+
+function DatabaseShardStack({
+  position,
+  tone,
+  scale = 1,
+  registerMaterial,
+}: {
+  position: readonly [number, number, number];
+  tone: SceneTone;
+  scale?: number;
+  registerMaterial: (material: OpacityMaterial | null) => void;
+}) {
+  return (
+    <group position={position as [number, number, number]} scale={scale}>
+      {[0, 1, 2].map((index) => (
+        <mesh key={`db-shard-${index}`} position={[0, index * 0.16, 0]} rotation={[Math.PI / 2, 0, 0]}>
+          <cylinderGeometry args={[0.28 - index * 0.025, 0.28 - index * 0.025, 0.08, 24]} />
+          <meshPhysicalMaterial
+            ref={registerMaterial}
+            color={TONE_COLORS[tone]}
+            metalness={0.18}
+            roughness={0.2}
+            transmission={0.38}
+            thickness={0.08}
+            transparent
+            opacity={0.28 - index * 0.03}
+          />
+        </mesh>
+      ))}
+      <mesh position={[0, 0.18, 0]} scale={[0.72, 0.5, 0.72]}>
+        <boxGeometry args={[1, 1, 1]} />
+        <meshBasicMaterial
+          ref={registerMaterial}
+          color={TONE_COLORS[tone]}
+          wireframe
+          transparent
+          opacity={0.08}
+          depthWrite={false}
+          toneMapped={false}
+        />
+      </mesh>
+    </group>
+  );
+}
+
+function ServiceGrid({
+  unitCount,
+  registerMaterial,
+}: {
+  unitCount: number;
+  registerMaterial: (material: OpacityMaterial | null) => void;
+}) {
+  const gridRef = useRef<THREE.Group>(null!);
+  const instancesRef = useRef<THREE.InstancedMesh>(null!);
+  const dummy = useMemo(() => new THREE.Object3D(), []);
+  const units = useMemo(
+    () =>
+      Array.from({ length: unitCount }, (_, index) => ({
+        x: (index % 4 - 1.5) * 0.58,
+        y: (Math.floor(index / 4) - 1) * 0.38,
+        z: (index % 3) * 0.1,
+      })),
+    [unitCount]
+  );
+
+  useEffect(() => {
+    if (!instancesRef.current) return;
+    units.forEach((unit, index) => {
+      dummy.position.set(unit.x, unit.y, unit.z);
+      dummy.rotation.set(0.05, -0.16, 0);
+      dummy.scale.set(1, 1, 1);
+      dummy.updateMatrix();
+      instancesRef.current.setMatrixAt(index, dummy.matrix);
+    });
+    instancesRef.current.instanceMatrix.needsUpdate = true;
+  }, [dummy, units]);
+
+  useFrame((state) => {
+    if (!gridRef.current) return;
+    const elapsed = state.clock.getElapsedTime();
+    gridRef.current.rotation.y = Math.sin(elapsed * 0.1) * 0.055;
+    gridRef.current.position.y = Math.sin(elapsed * 0.22) * 0.035;
+  });
+
+  return (
+    <group ref={gridRef} position={[0.78, 0.34, 1.75]} rotation={[0.08, -0.34, 0.06]}>
+      <instancedMesh ref={instancesRef} args={[undefined, undefined, units.length]}>
+        <boxGeometry args={[0.36, 0.2, 0.12]} />
+        <meshPhysicalMaterial
+          ref={registerMaterial}
+          color="#38bdf8"
+          metalness={0.1}
+          roughness={0.28}
+          transmission={0.34}
+          thickness={0.08}
+          transparent
+          opacity={0.22}
+        />
+      </instancedMesh>
+      <mesh position={[0, -0.58, -0.08]}>
+        <boxGeometry args={[2.7, 0.025, 0.08]} />
+        <meshBasicMaterial
+          ref={registerMaterial}
+          color="#fbbf24"
+          transparent
+          opacity={0.16}
+          depthWrite={false}
+          toneMapped={false}
+        />
+      </mesh>
+    </group>
+  );
+}
+
+function ObservabilityPulseStack({
+  count,
+  registerMaterial,
+}: {
+  count: number;
+  registerMaterial: (material: OpacityMaterial | null) => void;
+}) {
+  const pulseRefs = useRef<Array<THREE.Mesh | null>>([]);
+
+  useFrame((state) => {
+    const elapsed = state.clock.getElapsedTime();
+    pulseRefs.current.forEach((pulse, index) => {
+      if (!pulse) return;
+      const wave = (Math.sin(elapsed * 0.72 + index * 0.9) + 1) * 0.5;
+      pulse.scale.setScalar(0.84 + wave * 0.18);
+      pulse.rotation.z = elapsed * (0.025 + index * 0.008);
+    });
+  });
+
+  if (count === 0) return null;
+
+  return (
+    <group position={[3.08, 0.22, 3.65]} rotation={[1.24, -0.2, -0.16]}>
+      {Array.from({ length: count }, (_, index) => (
+        <mesh
+          key={`observability-pulse-${index}`}
+          ref={(node) => {
+            pulseRefs.current[index] = node;
+          }}
+          position={[0, 0, index * 0.018]}
+        >
+          <torusGeometry args={[0.72 + index * 0.28, 0.01, 10, 86]} />
+          <meshBasicMaterial
+            ref={registerMaterial}
+            color={index % 2 === 0 ? "#38bdf8" : "#34d399"}
+            transparent
+            opacity={0.12 - index * 0.018}
+            depthWrite={false}
+            toneMapped={false}
+          />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
 function ProjectsDataCosmos({
   ranges,
   profile,
@@ -671,6 +860,16 @@ function ProjectsDataCosmos({
   const visibleLabels = useMemo(
     () => homeSceneData.projects.labels.slice(0, profile.projectCallouts),
     [profile.projectCallouts]
+  );
+  const visibleShardStacks = useMemo(
+    () =>
+      [
+        { position: [-2.72, -0.42, -1.76] as const, tone: "blue" as SceneTone, scale: 0.9 },
+        { position: [-0.34, -0.72, 0.18] as const, tone: "emerald" as SceneTone, scale: 0.82 },
+        { position: [1.96, -0.58, 2.48] as const, tone: "amber" as SceneTone, scale: 0.78 },
+        { position: [3.46, -0.36, 4.2] as const, tone: "blue" as SceneTone, scale: 0.72 },
+      ].slice(0, profile.projectShardStacks),
+    [profile.projectShardStacks]
   );
   const anchorZ = useMemo(() => getRangeDepth(ranges.projects, 0), [ranges.projects.end, ranges.projects.start]);
   const [focusX, focusY, focusZ] = homeSceneData.projects.focalOffset;
@@ -743,6 +942,18 @@ function ProjectsDataCosmos({
           position={plane.position}
           size={plane.size}
           tone={plane.tone}
+          registerMaterial={registerSceneMaterial}
+        />
+      ))}
+
+      <ProductOrbitSystem nodeCount={profile.projectOrbitNodes} registerMaterial={registerSceneMaterial} />
+
+      {visibleShardStacks.map((stack, index) => (
+        <DatabaseShardStack
+          key={`project-database-shard-${index}`}
+          position={stack.position}
+          tone={stack.tone}
+          scale={stack.scale}
           registerMaterial={registerSceneMaterial}
         />
       ))}
@@ -947,6 +1158,9 @@ function ExperienceSystemsField({
         />
       ))}
 
+      <ServiceGrid unitCount={profile.serviceGridUnits} registerMaterial={registerSceneMaterial} />
+      <ObservabilityPulseStack count={profile.observabilityPulses} registerMaterial={registerSceneMaterial} />
+
       {rails.map((rail, index) => (
         <mesh key={`experience-rail-${index}`}>
           <tubeGeometry args={[rail.curve, 48, rail.radius, 10, false]} />
@@ -1021,179 +1235,128 @@ function ExperienceSystemsField({
 
 // --- RUTGERS EDUCATION SCENE ---
 
-function EngineWake({
-  tone,
-  registerMaterial,
-}: {
-  tone: SceneTone;
-  registerMaterial: (material: OpacityMaterial | null) => void;
-}) {
-  const wakeRef = useRef<THREE.Group>(null!);
-  useFrame((state) => {
-    if (!wakeRef.current) return;
-    const t = state.clock.getElapsedTime();
-    wakeRef.current.scale.x = 1 + Math.sin(t * 12) * 0.05;
-    wakeRef.current.scale.y = 1 + Math.sin(t * 15 + 1) * 0.05;
-  });
-
-  return (
-    <group ref={wakeRef}>
-      <mesh position={[0, 0, -2.5]} rotation={[Math.PI / 2, 0, 0]}>
-        <cylinderGeometry args={[0.08, 0.45, 5, 12, 1, true]} />
-        <meshBasicMaterial
-          ref={registerMaterial}
-          color={TONE_COLORS[tone]}
-          transparent
-          opacity={0.12}
-          depthWrite={false}
-          toneMapped={false}
-          blending={THREE.AdditiveBlending}
-        />
-      </mesh>
-      <mesh position={[0, 0, -0.5]}>
-        <sphereGeometry args={[0.2, 12, 12]} />
-        <meshBasicMaterial
-          ref={registerMaterial}
-          color={TONE_COLORS[tone]}
-          transparent
-          opacity={0.6}
-          depthWrite={false}
-          toneMapped={false}
-        />
-      </mesh>
-    </group>
-  );
-}
-
-function EducationSpacecraft({
-  flightProgress,
+function RutgersAcademicCore({
   simplified,
   registerSceneMaterial,
 }: {
-  flightProgress: number;
   simplified: boolean;
   registerSceneMaterial: (material: OpacityMaterial | null) => void;
 }) {
   const coreRef = useRef<THREE.Group>(null!);
+  const ringRef = useRef<THREE.Group>(null!);
+  const foundationBars = useMemo(
+    () =>
+      Array.from({ length: simplified ? 4 : 7 }, (_, index) => ({
+        x: (index - (simplified ? 1.5 : 3)) * 0.42,
+        z: (index % 2 === 0 ? -0.12 : 0.16) + index * 0.03,
+        tone: (index % 3 === 0 ? "scarlet" : index % 3 === 1 ? "blue" : "amber") as SceneTone,
+      })),
+    [simplified]
+  );
 
   useFrame((state) => {
-    if (coreRef.current) {
-      coreRef.current.position.y = Math.sin(state.clock.getElapsedTime() * 1.5) * 0.05;
-    }
+    const elapsed = state.clock.getElapsedTime();
+    coreRef.current.position.y = Math.sin(elapsed * 0.72) * 0.045;
+    coreRef.current.rotation.y = Math.sin(elapsed * 0.1) * 0.055;
+    ringRef.current.rotation.z = elapsed * 0.035;
   });
 
   return (
     <group ref={coreRef}>
-      {/* Outer Monolithic Glass Hull */}
-      <mesh rotation={[Math.PI / 2, Math.PI / 4, 0]} scale={[1.8, 4.0, 0.45]}>
-        <coneGeometry args={[2.5, 6, 4]} />
+      <mesh rotation={[Math.PI / 2, 0, 0]}>
+        <cylinderGeometry args={[0.78, 0.78, 0.32, simplified ? 40 : 56]} />
         <meshPhysicalMaterial
           ref={registerSceneMaterial}
-          color="#030406"
-          transmission={0.97}
-          ior={1.42}
-          thickness={4.5}
-          roughness={0.05}
-          metalness={0.12}
-          transparent
-          opacity={0.92}
-        />
-      </mesh>
-
-      {/* Internal Emissive Data Core */}
-      <mesh rotation={[Math.PI / 2, Math.PI / 4, 0]} position={[0, -0.2, 0]} scale={[1.3, 3.2, 0.2]}>
-        <coneGeometry args={[2.5, 6, 4]} />
-        <meshPhysicalMaterial
-          ref={registerSceneMaterial}
-          color="#ff0a33"
+          color="#240710"
           emissive="#e11d48"
-          emissiveIntensity={2.2}
-          transmission={0.2}
-          roughness={0.4}
+          emissiveIntensity={0.45}
+          metalness={0.18}
+          roughness={0.22}
+          transmission={0.24}
+          thickness={0.18}
           transparent
-          opacity={0.95}
+          opacity={0.58}
         />
       </mesh>
 
-      {/* Precision Engineering Holographic Grid */}
-      <mesh rotation={[Math.PI / 2, Math.PI / 4, 0]} scale={[1.81, 4.01, 0.46]}>
-        <coneGeometry args={[2.5, 6, 6, 4]} />
+      <mesh rotation={[Math.PI / 2, 0, 0]} scale={[1.08, 1.08, 1.08]}>
+        <cylinderGeometry args={[0.78, 0.78, 0.34, simplified ? 32 : 56]} />
         <meshBasicMaterial
           ref={registerSceneMaterial}
-          color="#38bdf8"
+          color="#e11d48"
           wireframe
           transparent
-          opacity={0.15}
-          blending={THREE.AdditiveBlending}
+          opacity={0.14}
+          depthWrite={false}
+          toneMapped={false}
         />
       </mesh>
 
-      {/* Massive Engine Plume & Data Wake */}
-      <group position={[0, 0, -4.5]}>
-        <Sparkles 
-          count={simplified ? 0 : 400} 
-          scale={[12, 1, 14]} 
-          size={5} 
-          speed={0.4} 
-          opacity={0.2} 
-          color="#34d399" 
-        />
-        <Sparkles 
-          count={simplified ? 0 : 250} 
-          scale={[8, 1, 10]} 
-          size={8} 
-          speed={0.6} 
-          opacity={0.4} 
-          color="#e11d48" 
-        />
-      </group>
-      
-      {/* Primary Engine Cluster */}
-      <mesh position={[0, 0, -3.2]} rotation={[Math.PI / 2, 0, 0]}>
-        <cylinderGeometry args={[0.8, 1.4, 1.2, 4]} />
-        <meshPhysicalMaterial
-          ref={registerSceneMaterial}
-          color="#06080b"
-          metalness={0.9}
-          roughness={0.4}
-          transparent
-          opacity={0.98}
-        />
-      </mesh>
-
-      <group position={[-0.6, 0, -3.8]}>
-        <ThrusterFlare position={[0,0,0]} tone="emerald" scale={3.4} registerMaterial={registerSceneMaterial} />
-        <EngineWake tone="emerald" registerMaterial={registerSceneMaterial} />
-      </group>
-      <group position={[0.6, 0, -3.8]}>
-        <ThrusterFlare position={[0,0,0]} tone="emerald" scale={3.4} registerMaterial={registerSceneMaterial} />
-        <EngineWake tone="emerald" registerMaterial={registerSceneMaterial} />
-      </group>
-      <group position={[0, 0, -4.2]}>
-        <ThrusterFlare position={[0,0,0]} tone="blue" scale={2.8} registerMaterial={registerSceneMaterial} />
-        <EngineWake tone="blue" registerMaterial={registerSceneMaterial} />
+      <group ref={ringRef}>
+        {[0.98, 1.34, 1.72].slice(0, simplified ? 2 : 3).map((radius, index) => (
+          <mesh
+            key={`rutgers-core-ring-${radius}`}
+            rotation={[Math.PI / 2.18 + index * 0.08, index * 0.12, index % 2 === 0 ? -0.14 : 0.2]}
+          >
+            <torusGeometry args={[radius, 0.012, 10, 110]} />
+            <meshBasicMaterial
+              ref={registerSceneMaterial}
+              color={index === 1 ? "#38bdf8" : "#e11d48"}
+              transparent
+              opacity={index === 1 ? 0.1 : 0.14}
+              depthWrite={false}
+              toneMapped={false}
+            />
+          </mesh>
+        ))}
       </group>
 
-      {/* Forward-Facing Holographic Branding */}
+      <group position={[0, -0.74, 0]} rotation={[-0.04, 0, 0]}>
+        <mesh position={[0, 0, 0]}>
+          <boxGeometry args={[3.5, 0.035, 1.35]} />
+          <meshBasicMaterial
+            ref={registerSceneMaterial}
+            color="#e11d48"
+            transparent
+            opacity={0.05}
+            depthWrite={false}
+            toneMapped={false}
+          />
+        </mesh>
+        {foundationBars.map((bar, index) => (
+          <mesh key={`foundation-bar-${index}`} position={[bar.x, 0.04, bar.z]}>
+            <boxGeometry args={[0.28, 0.06, 1.0]} />
+            <meshBasicMaterial
+              ref={registerSceneMaterial}
+              color={TONE_COLORS[bar.tone]}
+              transparent
+              opacity={0.16}
+              depthWrite={false}
+              toneMapped={false}
+            />
+          </mesh>
+        ))}
+      </group>
+
       <BrandPlate
         label="RUTGERS UNIVERSITY"
-        sublabel="Data Core Flagship"
-        position={[0, 1.25, 1.5]}
-        rotation={[-0.15, 0, 0]} 
+        sublabel="CS + DATA SCIENCE FOUNDATION"
+        position={[0, 1.08, 0.52]}
+        rotation={[-0.12, 0, 0]}
         tone="scarlet"
-        size={[3.6, 0.85]}
-        opacity={1.0}
+        size={[3.35, 0.68]}
+        opacity={0.92}
         registerMaterial={registerSceneMaterial}
       />
-      
+
       {!simplified && (
         <BrandPlate
-          label="/// ORBITAL ENTRY"
-          position={[0, -0.8, 3.2]}
-          rotation={[0.2, 0, 0]}
-          tone="emerald"
-          size={[1.4, 0.25]}
-          opacity={0.9}
+          label="FOUNDATION GRID"
+          position={[0, -1.08, 0.78]}
+          rotation={[0.18, 0, 0]}
+          tone="blue"
+          size={[1.62, 0.3]}
+          opacity={0.66}
           registerMaterial={registerSceneMaterial}
         />
       )}
@@ -1210,7 +1373,7 @@ function RutgersEducationScene({
 }) {
   const scroll = useScroll();
   const rootRef = useRef<THREE.Group>(null!);
-  const shipRef = useRef<THREE.Group>(null!);
+  const coreRigRef = useRef<THREE.Group>(null!);
   const packetRefs = useRef<Array<THREE.Mesh | null>>([]);
   const tempPointRef = useRef(new THREE.Vector3());
   const tempTangentRef = useRef(new THREE.Vector3());
@@ -1226,8 +1389,8 @@ function RutgersEducationScene({
     [ranges.education.end, ranges.education.start]
   );
   const [focusX, focusY, focusZ] = homeSceneData.education.focalOffset;
-  const [shipOffsetX, shipOffsetY, shipOffsetZ] = homeSceneData.education.shipOffset;
-  const [shipRotX, shipRotY, shipRotZ] = homeSceneData.education.shipRotation;
+  const [coreOffsetX, coreOffsetY, coreOffsetZ] = homeSceneData.education.coreOffset;
+  const [coreRotX, coreRotY, coreRotZ] = homeSceneData.education.coreRotation;
 
   const ribbons = useMemo(
     () =>
@@ -1267,8 +1430,8 @@ function RutgersEducationScene({
       Math.min(1, ranges.contact.start + 0.02)
     );
     const alpha = clamp01(presence * (0.96 + arrivalPulse * 0.22)) * rutgersCardExit * (1 - calm * 0.72);
-    const flightProgress = THREE.MathUtils.smoothstep(progress, 0.02, 0.36);
-    const shipExit = THREE.MathUtils.smoothstep(progress, 0.72, 0.98);
+    const foundationProgress = THREE.MathUtils.smoothstep(progress, 0.02, 0.36);
+    const coreExit = THREE.MathUtils.smoothstep(progress, 0.72, 0.98);
 
     const xDrift = Math.sin(progress * Math.PI * 1.35 + elapsed * 0.05) * presence * 0.38;
     const yEntrance = -(1 - presence) * 9 + Math.sin(progress * Math.PI) * presence * 0.32 + arrivalPulse * 0.72;
@@ -1289,35 +1452,29 @@ function RutgersEducationScene({
     );
     rootRef.current.scale.setScalar(1.04 + presence * 0.18 + arrivalPulse * 0.08);
 
-    const shipScaleBase = profile.simplified ? 0.72 : profile.tablet ? 1.0 : 1.22;
-    
-    // Centered Inter-Tile Flyover: perfectly bisects the cards vertically
-    shipRef.current.position.set(
-      shipOffsetX + THREE.MathUtils.lerp(0.0, 0.0, flightProgress),
-      shipOffsetY + THREE.MathUtils.lerp(-0.22, 0.12, flightProgress),
-      shipOffsetZ + THREE.MathUtils.lerp(-13.0, 2.6, flightProgress)
+    const coreScaleBase = profile.simplified ? 0.78 : profile.tablet ? 0.98 : 1.14;
+
+    coreRigRef.current.position.set(
+      coreOffsetX,
+      coreOffsetY + THREE.MathUtils.lerp(-0.26, 0.04, foundationProgress),
+      coreOffsetZ + THREE.MathUtils.lerp(-5.8, 0.9, foundationProgress)
     );
-    // Dynamic pitch so the craft remains sleek and horizontal as it shoots through the gap
-    shipRef.current.rotation.x = THREE.MathUtils.lerp(
-      shipRef.current.rotation.x,
-      shipRotX + THREE.MathUtils.lerp(0.15, 0.0, flightProgress),
+    coreRigRef.current.rotation.x = THREE.MathUtils.lerp(
+      coreRigRef.current.rotation.x,
+      coreRotX + THREE.MathUtils.lerp(0.08, 0, foundationProgress),
       0.08
     );
-    // Steady symmetrical flyover
-    shipRef.current.rotation.y = THREE.MathUtils.lerp(
-      shipRef.current.rotation.y,
-      shipRotY + THREE.MathUtils.lerp(-0.02, 0.02, flightProgress),
+    coreRigRef.current.rotation.y = THREE.MathUtils.lerp(
+      coreRigRef.current.rotation.y,
+      coreRotY + Math.sin(elapsed * 0.16) * 0.025,
       0.08
     );
-    // Slight roll stabilization
-    shipRef.current.rotation.z = THREE.MathUtils.lerp(
-      shipRef.current.rotation.z,
-      shipRotZ + THREE.MathUtils.lerp(0.05, -0.05, flightProgress) + Math.sin(elapsed * 0.4) * 0.015,
+    coreRigRef.current.rotation.z = THREE.MathUtils.lerp(
+      coreRigRef.current.rotation.z,
+      coreRotZ + Math.sin(elapsed * 0.22) * 0.012,
       0.08
     );
-    
-    // Controlled Expansion: Fits massive power into the precise gap between the layout cards
-    shipRef.current.scale.setScalar(shipScaleBase * (1.0 + flightProgress * 0.28 - shipExit * 0.18 + arrivalPulse * 0.08));
+    coreRigRef.current.scale.setScalar(coreScaleBase * (1 + foundationProgress * 0.14 - coreExit * 0.12 + arrivalPulse * 0.05));
 
     setRegisteredOpacity(sceneMaterials.current, alpha);
 
@@ -1376,7 +1533,7 @@ function RutgersEducationScene({
           key={`education-node-${index}`}
           position={position}
           size={0.18 + index * 0.02}
-          tone={index % 2 === 0 ? "scarlet" : "emerald"}
+          tone={index % 2 === 0 ? "scarlet" : "blue"}
           registerMaterial={registerSceneMaterial}
         />
       ))}
@@ -1399,18 +1556,17 @@ function RutgersEducationScene({
         </mesh>
       ))}
 
-      <group ref={shipRef}>
-        <EducationSpacecraft 
-          flightProgress={(clamp01((scroll.offset - ranges.education.start) / Math.max(0.0001, ranges.education.end - ranges.education.start)))} 
-          simplified={profile.simplified} 
-          registerSceneMaterial={registerSceneMaterial} 
+      <group ref={coreRigRef}>
+        <RutgersAcademicCore
+          simplified={profile.simplified}
+          registerSceneMaterial={registerSceneMaterial}
         />
       </group>
     </group>
   );
 }
 
-function ContactTaper({
+function ContactSignalField({
   ranges,
   profile,
 }: {
@@ -1419,18 +1575,45 @@ function ContactTaper({
 }) {
   const scroll = useScroll();
   const rootRef = useRef<THREE.Group>(null!);
-  const particlesRef = useRef<THREE.InstancedMesh>(null!);
+  const signalNodeRefs = useRef<THREE.InstancedMesh>(null!);
+  const packetRefs = useRef<Array<THREE.Mesh | null>>([]);
   const dummy = useMemo(() => new THREE.Object3D(), []);
+  const tempPointRef = useRef(new THREE.Vector3());
+  const tempTangentRef = useRef(new THREE.Vector3());
+  const tempLookRef = useRef(new THREE.Vector3());
   const anchorZ = useMemo(() => getRangeDepth(ranges.contact, -8), [ranges.contact.end, ranges.contact.start]);
   const [focusX, focusY, focusZ] = homeSceneData.contact.focalOffset;
   const { materialsRef: sceneMaterials, registerMaterial: registerSceneMaterial } = useMaterialRegistry();
 
-  const particleData = useMemo(
+  const signalLines = useMemo(
+    () =>
+      homeSceneData.contact.signalLines.slice(0, profile.contactSignals).map((line) => ({
+        ...line,
+        curve: new THREE.CatmullRomCurve3(line.points.map(([x, y, z]) => new THREE.Vector3(x, y, z))),
+      })),
+    [profile.contactSignals]
+  );
+
+  const signalPackets = useMemo(
+    () =>
+      signalLines.flatMap((line) =>
+        line.packetOffsets.map((offset) => ({
+          curve: line.curve,
+          tone: line.tone,
+          offset,
+          speed: line.packetSpeed,
+          emphasis: line.emphasis ?? "support",
+        }))
+      ),
+    [signalLines]
+  );
+
+  const signalNodes = useMemo(
     () =>
       homeSceneData.contact.particles.slice(0, profile.contactParticles).map((position, index) => ({
         position: new THREE.Vector3(...position),
         phase: index * 0.76,
-        speed: 0.22 + index * 0.012,
+        speed: 0.1 + index * 0.01,
       })),
     [profile.contactParticles]
   );
@@ -1445,7 +1628,7 @@ function ContactTaper({
       Math.max(0, ranges.contact.end - 0.06),
       Math.min(1, ranges.contact.end + 0.05)
     );
-    const alpha = clamp01(presence * (0.74 + arrivalPulse * 0.18)) * (1 - footerFade * 0.24);
+    const alpha = clamp01(presence * (0.48 + arrivalPulse * 0.1)) * (1 - footerFade * 0.32);
 
     const xDrift = Math.sin(progress * Math.PI * 1.2 + elapsed * 0.04) * presence * 0.24;
     const yEntrance = -(1 - presence) * 8 + Math.sin(progress * Math.PI) * presence * 0.18 + arrivalPulse * 0.45;
@@ -1462,51 +1645,80 @@ function ContactTaper({
 
     setRegisteredOpacity(sceneMaterials.current, alpha);
 
-    if (particlesRef.current) {
-      particleData.forEach((particle, index) => {
-        const time = elapsed * particle.speed + particle.phase;
+    signalPackets.forEach((packet, index) => {
+      const packetMesh = packetRefs.current[index];
+      if (!packetMesh) return;
+      const t = (packet.offset + elapsed * packet.speed) % 1;
+      packet.curve.getPoint(t, tempPointRef.current);
+      packet.curve.getTangent(t, tempTangentRef.current);
+      packetMesh.position.copy(tempPointRef.current);
+      tempLookRef.current.copy(tempPointRef.current).add(tempTangentRef.current);
+      packetMesh.lookAt(tempLookRef.current);
+      const material = packetMesh.material as THREE.MeshBasicMaterial;
+      material.opacity = alpha * (packet.emphasis === "primary" ? 0.32 : 0.2);
+    });
+
+    if (signalNodeRefs.current) {
+      signalNodes.forEach((node, index) => {
+        const time = elapsed * node.speed + node.phase;
         dummy.position.set(
-          particle.position.x + Math.sin(time) * 0.14,
-          particle.position.y + Math.cos(time * 0.8) * 0.12,
-          particle.position.z + Math.sin(time * 1.15) * 0.14
+          node.position.x + Math.sin(time) * 0.08,
+          node.position.y + Math.cos(time * 0.8) * 0.06,
+          node.position.z + Math.sin(time * 1.15) * 0.08
         );
-        dummy.scale.setScalar(0.55 + alpha * 0.24);
+        dummy.rotation.set(0.12, time * 0.18, 0.2);
+        dummy.scale.setScalar(0.48 + alpha * 0.12);
         dummy.updateMatrix();
-        particlesRef.current!.setMatrixAt(index, dummy.matrix);
+        signalNodeRefs.current!.setMatrixAt(index, dummy.matrix);
       });
-      particlesRef.current.instanceMatrix.needsUpdate = true;
+      signalNodeRefs.current.instanceMatrix.needsUpdate = true;
     }
   });
 
   return (
     <group ref={rootRef}>
-      <mesh rotation={[Math.PI / 2.55, 0.18, 0]}>
-        <torusGeometry args={[2.05, 0.018, 16, 100]} />
+      {signalLines.map((line, index) => (
+        <mesh key={`contact-signal-line-${index}`}>
+          <tubeGeometry args={[line.curve, 34, line.radius, 6, false]} />
+          <meshBasicMaterial
+            ref={registerSceneMaterial}
+            color={TONE_COLORS[line.tone]}
+            transparent
+            opacity={line.emphasis === "primary" ? 0.1 : 0.07}
+            depthWrite={false}
+            toneMapped={false}
+          />
+        </mesh>
+      ))}
+
+      {signalPackets.map((packet, index) => (
+        <mesh
+          key={`contact-signal-packet-${index}`}
+          ref={(node) => {
+            packetRefs.current[index] = node;
+          }}
+        >
+          <capsuleGeometry args={[0.008, 0.12, 4, 6]} />
+          <meshBasicMaterial
+            color={TONE_COLORS[packet.tone]}
+            transparent
+            opacity={0.28}
+            depthWrite={false}
+            toneMapped={false}
+          />
+        </mesh>
+      ))}
+
+      <instancedMesh ref={signalNodeRefs} args={[undefined, undefined, signalNodes.length]}>
+        <boxGeometry args={[0.06, 0.06, 0.025]} />
         <meshBasicMaterial
           ref={registerSceneMaterial}
           color="#38bdf8"
           transparent
-          opacity={0.14}
+          opacity={0.2}
           depthWrite={false}
           toneMapped={false}
         />
-      </mesh>
-
-      <mesh rotation={[-Math.PI / 2.35, -0.24, 0]}>
-        <torusGeometry args={[1.68, 0.018, 16, 100]} />
-        <meshBasicMaterial
-          ref={registerSceneMaterial}
-          color="#34d399"
-          transparent
-          opacity={0.18}
-          depthWrite={false}
-          toneMapped={false}
-        />
-      </mesh>
-
-      <instancedMesh ref={particlesRef} args={[undefined, undefined, particleData.length]}>
-        <sphereGeometry args={[0.045, 10, 10]} />
-        <meshBasicMaterial color="#34d399" transparent opacity={0.42} depthWrite={false} toneMapped={false} />
       </instancedMesh>
     </group>
   );
@@ -1526,7 +1738,7 @@ export function HomeLowerScene({
       <ProjectsDataCosmos ranges={sectionRanges} profile={profile} />
       <ExperienceSystemsField ranges={sectionRanges} profile={profile} />
       <RutgersEducationScene ranges={sectionRanges} profile={profile} />
-      {!liteMode && <ContactTaper ranges={sectionRanges} profile={profile} />}
+      {!liteMode && <ContactSignalField ranges={sectionRanges} profile={profile} />}
     </>
   );
 }

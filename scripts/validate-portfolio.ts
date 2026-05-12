@@ -35,6 +35,10 @@ function assertPortfolioData() {
 
     const shiftelixProjects = profile.projects.filter((project) => project.id === "shiftelix-workforce-os");
     assert(shiftelixProjects.length === 1, `${profileSlug} must include Shiftelix exactly once.`);
+    assert(
+      profile.personal.email === "makkinaganesh25c@gmail.com",
+      `${profileSlug} must use the current public contact email.`
+    );
   }
 
   const dataEngineerShiftelix = portfolioProfiles.dataengineer.projects.find((project) => project.id === "shiftelix-workforce-os");
@@ -49,8 +53,13 @@ function assertPortfolioData() {
   );
 
   const educationSchools = portfolioProfiles.dataengineer.education.map((entry) => entry.school);
+  const rutgersEducation = portfolioProfiles.dataengineer.education.find((entry) => entry.school === "Rutgers University - New Brunswick");
   assert(educationSchools.includes("Rutgers University - New Brunswick"), "Rutgers education entry is missing.");
   assert(educationSchools.includes("Army Institute of Technology"), "Army Institute of Technology education entry is missing.");
+  assert(
+    rutgersEducation?.degree === "Master of Science in Statistics - Data Science",
+    "Rutgers degree must use Master of Science, not Master of Statistics."
+  );
   assert(
     portfolioProfiles.dataengineer.personal.location === "New York City Metropolitan Area",
     "Shared location must stay aligned to New York City Metropolitan Area."
@@ -103,6 +112,7 @@ async function assertHomeMotionContracts() {
   const homeMotion = await readRepoFile("src/components/HomeMotion.tsx");
   const home = await readRepoFile("src/pages/Home.tsx");
   const homeSections = await readRepoFile("src/components/HomeSections.tsx");
+  const homeSceneData = await readRepoFile("src/data/homeSceneData.ts");
   const lowerScene = await readRepoFile("src/components/3d/HomeLowerScene.tsx");
   const storyScene = await readRepoFile("src/components/3d/StoryScene.tsx");
 
@@ -126,16 +136,32 @@ async function assertHomeMotionContracts() {
   assert(home.includes("contact-panel"), "Contact 3D scene must be anchored to the contact panel.");
   assert(home.includes("viewportHeight * 0.08"), "Contact 3D scene must not fade in until the contact panel enters the viewport.");
   assert(homeSections.includes('sceneAnchor={idx === 0 ? "rutgers-education" : undefined}'), "Rutgers education tile must expose a scene anchor.");
+  assert(homeSceneData.includes("signalLines"), "Contact scene data must use bounded communication/signal lines.");
+  assert(homeSceneData.includes("coreOffset"), "Education scene data must anchor the Rutgers academic core, not a fly-through object.");
+  const educationSceneData = homeSceneData.match(/education: \{[\s\S]*?\n  contact:/)?.[0] ?? "";
+  assert(!educationSceneData.includes('tone: "emerald"'), "Education scene should avoid the old green/teal visual motif.");
+  assert(lowerScene.includes("ProductOrbitSystem"), "Projects scene must keep product-system orbit nodes.");
+  assert(lowerScene.includes("DatabaseShardStack"), "Projects scene must keep database shard geometry.");
+  assert(lowerScene.includes("ServiceGrid"), "Experience scene must keep enterprise service-grid geometry.");
+  assert(lowerScene.includes("ObservabilityPulseStack"), "Experience scene must keep observability pulse geometry.");
+  assert(lowerScene.includes("RutgersAcademicCore"), "Education scene must render the Rutgers academic data core.");
+  assert(lowerScene.includes("ContactSignalField"), "Contact scene must render the calm signal field.");
   assert(lowerScene.includes("rutgersCardExit"), "Rutgers education scene must fade before the next education card.");
   assert(lowerScene.includes("ranges.contact, 0.022"), "Contact bubble fade must stay tight to the contact range.");
   assert(!lowerScene.includes("sphereGeometry args={[1.34, 40, 40]}"), "Contact scene must not render the large green bubble.");
   assert(!lowerScene.includes("sphereGeometry args={[1, 24, 24]}"), "Contact scene must not render the green bubble core.");
+  assert(!lowerScene.includes("EducationSpacecraft"), "Education scene must not return to the spaceship motif.");
+  assert(!lowerScene.includes("ThrusterFlare"), "Education scene must not use engine thruster clutter.");
+  assert(!lowerScene.includes("<Sparkles"), "Lower homepage scenes must not use noisy particle bursts.");
   assert(!storyScene.includes("sphereGeometry args={[5, 64, 64]}"), "ReactiveLight must not render a visible green bubble.");
+  assert(!storyScene.includes("<Sparkles"), "StoryScene must not reintroduce noisy global particles.");
+  assert(!storyScene.includes("<Float"), "StoryScene must not reintroduce generic floating space clutter.");
   assert(storyScene.includes("ScenePostEffects({ liteMode }"), "Postprocessing must be disabled in lightweight mode.");
-  assert(storyScene.includes("count={liteMode ? 1200 : 2800}"), "Starfield count must stay bounded for lightweight scrolling.");
+  assert(storyScene.includes("count={liteMode ? 420 : 950}"), "Starfield count must stay tightly bounded for lightweight scrolling.");
+  assert(storyScene.includes("InfrastructureBackplane"), "StoryScene must keep the subtle infrastructure backplane.");
   assert(storyScene.includes("!liteMode && <ReactiveLight />"), "Pointer-following light should not run in lightweight mode.");
   assert(lowerScene.includes("useSceneProfile(liteMode)"), "Lower 3D scene must use the lightweight profile.");
-  assert(lowerScene.includes("!liteMode && <ContactTaper"), "Contact particles should not render in lightweight mode.");
+  assert(lowerScene.includes("!liteMode && <ContactSignalField"), "Contact signal field should not render in lightweight mode.");
   assert(lowerScene.includes("getChapterArrivalPulse"), "HomeLowerScene must keep chapter arrival pulse animation tied to section progress.");
   assert(storyScene.includes("getStoryChapterPulse"), "StoryScene must keep camera motion synced to section arrival pulses.");
 }

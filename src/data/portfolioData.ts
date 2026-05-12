@@ -137,7 +137,7 @@ export function isProfileSlug(value: string | undefined): value is ProfileSlug {
 
 const sharedIdentity = {
   name: "Ganesh Makkina",
-  email: "gm832@scarletmail.rutgers.edu",
+  email: "makkinaganesh25c@gmail.com",
   linkedin: "https://www.linkedin.com/in/ganesh-makkina/",
   github: "https://github.com/makkinaganesh25",
   location: "New York City Metropolitan Area",
@@ -146,7 +146,7 @@ const sharedIdentity = {
 const sharedEducation: Education[] = [
   {
     school: "Rutgers University - New Brunswick",
-    degree: "Master of Statistics - Data Science",
+    degree: "Master of Science in Statistics - Data Science",
     period: "Sep 2023 - May 2025",
     location: "New Brunswick, NJ",
     details: [
