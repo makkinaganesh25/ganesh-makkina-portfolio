@@ -34,6 +34,13 @@ This file is the rolling repo-update index for contributor-facing changes. Updat
 
 ## Recent Updates
 
+### 2026-05-12
+
+- Fixed the homepage ScrollControls footer end-state by keeping Drei `pages` tied to visual content travel instead of the native hidden scroll DOM height, so max scroll ends at the compact footer.
+- Added rendered homepage scroll geometry coverage:
+  - `npm run test` now also runs `scripts/validate-home-scroll-geometry.ts`
+  - the rendered check launches local Vite plus headless Chrome, opens software/data engineer `#contact` routes at desktop and mobile widths, verifies the contact hash landing, verifies both desktop "Let's Talk" CTA paths, scrolls to max, and asserts the footer is visible at the viewport bottom with no large blank band after it
+
 ### 2026-05-11
 
 - Added a portfolio regression test command to keep future content/layout edits from reintroducing recent issues:

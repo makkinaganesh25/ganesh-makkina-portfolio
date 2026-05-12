@@ -35,6 +35,8 @@ const HOME_HASH_SECTION_IDS = ["projects", "experience", "education", "contact"]
 type HomeHashSectionId = (typeof HOME_HASH_SECTION_IDS)[number];
 const HOME_SCROLL_SECTION_SELECTOR = ":scope > [data-home-scroll-section]";
 const HOME_NAV_ANCHOR_BUFFER_PX = 18;
+// Let final hash targets clamp to the footer end instead of waiting for impossible overscroll.
+const HOME_HASH_END_CLAMP_TOLERANCE_PX = 192;
 export const HOME_NAV_SCROLL_REQUEST_EVENT = "portfolio-home-nav-request";
 
 function isHomeHashSectionId(value: string): value is HomeHashSectionId {
@@ -56,8 +58,44 @@ function getHomeScrollSectionNames(element: HTMLElement) {
     .filter((section): section is HomeScrollSectionName => HOME_SCROLL_SECTION_ORDER.includes(section as HomeScrollSectionName));
 }
 
+function getMeasuredHomeContentHeight(element: HTMLElement) {
+  const measuredHeight = getHomeScrollSections(element).reduce((total, section) => {
+    if (!(section instanceof HTMLElement)) return total;
+    return Math.max(total, section.offsetTop + section.offsetHeight);
+  }, 0);
+
+  return measuredHeight > 0 ? measuredHeight : element.scrollHeight;
+}
+
 function clamp01(value: number) {
   return Math.max(0, Math.min(1, value));
+}
+
+function getCanvasNativeMaxScroll(scrollViewport: HTMLDivElement) {
+  return Math.max(1, scrollViewport.scrollHeight - scrollViewport.clientHeight);
+}
+
+function getCanvasVisualScrollRange(pages: number, viewportHeight: number) {
+  return Math.max(0, (pages - 1) * viewportHeight);
+}
+
+function getCanvasNativeScrollTopForVisualTop(visualTop: number, pages: number, scrollViewport: HTMLDivElement) {
+  const viewportHeight = scrollViewport.clientHeight || window.innerHeight || 1;
+  const nativeMaxScroll = getCanvasNativeMaxScroll(scrollViewport);
+  const visualMaxScroll = getCanvasVisualScrollRange(pages, viewportHeight);
+  if (visualMaxScroll <= 0) return 1;
+
+  const normalizedTarget = clamp01(visualTop / visualMaxScroll);
+  return Math.max(1, Math.min(nativeMaxScroll, normalizedTarget * nativeMaxScroll));
+}
+
+function getCanvasVisualTopForNativeScroll(nativeTop: number, pages: number, scrollViewport: HTMLDivElement) {
+  const viewportHeight = scrollViewport.clientHeight || window.innerHeight || 1;
+  const nativeMaxScroll = getCanvasNativeMaxScroll(scrollViewport);
+  const visualMaxScroll = getCanvasVisualScrollRange(pages, viewportHeight);
+  if (visualMaxScroll <= 0) return 0;
+
+  return clamp01(nativeTop / nativeMaxScroll) * visualMaxScroll;
 }
 
 function SectionNavAnchor({ sectionId }: { sectionId: HomeHashSectionId }) {
@@ -90,14 +128,14 @@ function getHomeAnchorTopWithinContainer(anchor: HTMLElement, container: HTMLEle
 
 function measureSceneSectionRange(
   container: HTMLElement,
-  scrollViewport: HTMLDivElement,
+  maxVisualScroll: number,
   sectionName: "projects" | "experience" | "education" | "contact",
   fallback: SectionRange
 ) {
   const section = container.querySelector<HTMLElement>(`[data-home-scroll-section="${sectionName}"]`);
   if (!section) return fallback;
 
-  const maxScroll = Math.max(1, scrollViewport.scrollHeight - scrollViewport.clientHeight);
+  const maxScroll = Math.max(1, maxVisualScroll);
   const start = clamp01(section.offsetTop / maxScroll);
   const end = clamp01((section.offsetTop + section.offsetHeight) / maxScroll);
 
@@ -105,12 +143,15 @@ function measureSceneSectionRange(
   return { start, end };
 }
 
-function measureHomeSceneRanges(container: HTMLElement, scrollViewport: HTMLDivElement): HomeSceneRanges {
+function measureHomeSceneRanges(container: HTMLElement, scrollViewport: HTMLDivElement, pages: number): HomeSceneRanges {
+  const viewportHeight = scrollViewport.clientHeight || window.innerHeight || 1;
+  const maxVisualScroll = getCanvasVisualScrollRange(pages, viewportHeight);
+
   return {
-    projects: measureSceneSectionRange(container, scrollViewport, "projects", defaultHomeSceneRanges.projects),
-    experience: measureSceneSectionRange(container, scrollViewport, "experience", defaultHomeSceneRanges.experience),
-    education: measureSceneSectionRange(container, scrollViewport, "education", defaultHomeSceneRanges.education),
-    contact: measureSceneSectionRange(container, scrollViewport, "contact", defaultHomeSceneRanges.contact),
+    projects: measureSceneSectionRange(container, maxVisualScroll, "projects", defaultHomeSceneRanges.projects),
+    experience: measureSceneSectionRange(container, maxVisualScroll, "experience", defaultHomeSceneRanges.experience),
+    education: measureSceneSectionRange(container, maxVisualScroll, "education", defaultHomeSceneRanges.education),
+    contact: measureSceneSectionRange(container, maxVisualScroll, "contact", defaultHomeSceneRanges.contact),
   };
 }
 
@@ -680,7 +721,10 @@ export default function Home() {
   const [homeRestoreStatus, setHomeRestoreStatus] = useState<"idle" | "pending" | "restored">("idle");
   const [restoreRetryVersion, setRestoreRetryVersion] = useState(0);
   const [hashRetryVersion, setHashRetryVersion] = useState(0);
-  const [pendingHashSection, setPendingHashSection] = useState<{ sectionId: HomeHashSectionId; settledTargetTop: number | null } | null>(null);
+  const [pendingHashSection, setPendingHashSection] = useState<{ sectionId: HomeHashSectionId; settledTargetTop: number | null } | null>(() => {
+    const hashSectionId = getHomeHashSectionId(hash);
+    return hashSectionId ? { sectionId: hashSectionId, settledTargetTop: null } : null;
+  });
   const [restoredProjectId, setRestoredProjectId] = useState<string | null>(null);
   const heroAnchorX = useMotionValue(0);
   const heroAnchorY = useMotionValue(0.18);
@@ -705,7 +749,7 @@ export default function Home() {
 
     scrollViewport.scrollLeft = 0;
     scrollViewport.scrollTop = 1;
-    const maxScroll = Math.max(1, scrollViewport.scrollHeight - scrollViewport.clientHeight);
+    const maxScroll = getCanvasNativeMaxScroll(scrollViewport);
     syncCanvasScrollViewportState(1, maxScroll);
   };
 
@@ -737,11 +781,9 @@ export default function Home() {
     if (!scrollViewportState || scrollViewportState.horizontal) return;
 
     const viewportHeight = scrollViewportState.el.clientHeight;
-    if (viewportHeight > 0) {
-      scrollViewportState.pages = scrollViewportState.el.scrollHeight / viewportHeight;
-    }
+    scrollViewportState.pages = pages;
 
-    const normalizedTarget = maxScroll > 0 ? targetTop / maxScroll : 0;
+    const normalizedTarget = maxScroll > 0 ? clamp01(targetTop / maxScroll) : 0;
     scrollViewportState.offset = normalizedTarget;
     scrollViewportState.delta = 1;
     if (scrollViewportState.scroll) {
@@ -750,7 +792,8 @@ export default function Home() {
 
     const scrollHtmlLayer = scrollViewportState.fixed.firstElementChild;
     if (scrollHtmlLayer instanceof HTMLElement) {
-      scrollHtmlLayer.style.transform = `translate3d(0px,${-targetTop}px,0)`;
+      const visualScrollTop = getCanvasVisualScrollRange(pages, viewportHeight || window.innerHeight || 1) * normalizedTarget;
+      scrollHtmlLayer.style.transform = `translate3d(0px,${-visualScrollTop}px,0)`;
     }
   };
 
@@ -758,7 +801,7 @@ export default function Home() {
     const scrollViewport = scrollViewportRef.current;
     if (!scrollViewport) return;
 
-    const maxScroll = Math.max(1, scrollViewport.scrollHeight - scrollViewport.clientHeight);
+    const maxScroll = getCanvasNativeMaxScroll(scrollViewport);
     const clampedTarget = Math.max(1, Math.min(targetTop, maxScroll));
     scrollViewport.scrollLeft = 0;
     scrollViewport.scrollTo({ top: clampedTarget, behavior: "auto" });
@@ -797,15 +840,19 @@ export default function Home() {
       const anchorTopWithinContainer = getHomeAnchorTopWithinContainer(anchor, container);
       if (anchorTopWithinContainer === null) return null;
 
-      const maxScroll = Math.max(1, scrollViewport.scrollHeight - scrollViewport.clientHeight);
+      const viewportHeight = scrollViewport.clientHeight || window.innerHeight || 1;
+      const maxScroll = getCanvasVisualScrollRange(pages, viewportHeight);
       const rawTargetTop = anchorTopWithinContainer - clearance;
-      const targetTop = Math.max(1, Math.min(rawTargetTop, maxScroll));
+      const visualTargetTop = Math.max(0, Math.min(rawTargetTop, maxScroll));
+      const targetTop = getCanvasNativeScrollTopForVisualTop(visualTargetTop, pages, scrollViewport);
 
       return {
         mode: "canvas" as const,
         targetTop,
         rawTargetTop,
         maxScroll,
+        nativeMaxScroll: getCanvasNativeMaxScroll(scrollViewport),
+        visualTargetTop,
       };
     }
 
@@ -824,11 +871,17 @@ export default function Home() {
     };
   };
 
+  type SectionScrollMetrics = NonNullable<ReturnType<typeof getSectionScrollMetrics>>;
+  const canApplySectionScrollMetrics = (
+    metrics: ReturnType<typeof getSectionScrollMetrics>
+  ): metrics is SectionScrollMetrics => {
+    if (!metrics) return false;
+    return metrics.maxScroll + HOME_HASH_END_CLAMP_TOLERANCE_PX >= metrics.rawTargetTop;
+  };
+
   const applySectionScroll = (sectionId: HomeHashSectionId, behavior: ScrollBehavior = "smooth") => {
     const metrics = getSectionScrollMetrics(sectionId);
-    if (!metrics) return false;
-
-    if (metrics.maxScroll + 1 < metrics.rawTargetTop) {
+    if (!canApplySectionScrollMetrics(metrics)) {
       return false;
     }
 
@@ -838,7 +891,7 @@ export default function Home() {
 
       scrollViewport.scrollLeft = 0;
       scrollViewport.scrollTo({ top: metrics.targetTop, behavior });
-      syncCanvasScrollViewportState(metrics.targetTop, metrics.maxScroll);
+      syncCanvasScrollViewportState(metrics.targetTop, metrics.nativeMaxScroll);
       return true;
     }
 
@@ -875,7 +928,7 @@ export default function Home() {
     if (!scrollViewport) return false;
 
     const normalizedTarget = Math.max(1, targetTop);
-    const maxScroll = Math.max(1, scrollViewport.scrollHeight - scrollViewport.clientHeight);
+    const maxScroll = getCanvasNativeMaxScroll(scrollViewport);
     return maxScroll + 1 >= normalizedTarget;
   };
 
@@ -889,10 +942,18 @@ export default function Home() {
     if (!scrollViewport || !anchor) return false;
 
     const clearance = getHomeNavScrollClearance();
-    return (
-      Math.abs(scrollViewport.scrollTop - targetTop) <= 2 &&
-      Math.abs(anchor.getBoundingClientRect().top - clearance) <= 24
-    );
+    const anchorTop = anchor.getBoundingClientRect().top;
+    const isAtTarget = Math.abs(scrollViewport.scrollTop - targetTop) <= 2;
+    const isDirectAnchorLanding = Math.abs(anchorTop - clearance) <= 24;
+    const footer = containerRef.current?.querySelector<HTMLElement>('[data-home-scroll-section="footer"]') ?? null;
+    const footerRect = footer?.getBoundingClientRect();
+    const isClampedAtFooterEnd =
+      Math.abs(targetTop - getCanvasNativeMaxScroll(scrollViewport)) <= 2 &&
+      anchorTop >= clearance - 24 &&
+      anchorTop <= clearance + HOME_HASH_END_CLAMP_TOLERANCE_PX &&
+      Boolean(footerRect && footerRect.top > anchorTop && footerRect.top < scrollViewport.clientHeight);
+
+    return isAtTarget && (isDirectAnchorLanding || isClampedAtFooterEnd);
   };
 
   const nudgeCanvasHashTarget = (targetTop: number, maxScroll: number) => {
@@ -935,6 +996,27 @@ export default function Home() {
       window.history.scrollRestoration = previousScrollRestoration;
     };
   }, []);
+
+  useEffect(() => {
+    const scrollViewport = scrollViewportRef.current;
+    if (!isCanvasEnabled || !scrollViewport) return;
+
+    let frame = 0;
+    const syncNativeScroll = () => {
+      window.cancelAnimationFrame(frame);
+      frame = window.requestAnimationFrame(() => {
+        syncCanvasScrollViewportState(scrollViewport.scrollTop, getCanvasNativeMaxScroll(scrollViewport));
+      });
+    };
+
+    scrollViewport.addEventListener("scroll", syncNativeScroll, { passive: true });
+    syncNativeScroll();
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+      scrollViewport.removeEventListener("scroll", syncNativeScroll);
+    };
+  }, [isCanvasEnabled, pages, scrollViewportVersion]);
 
   useEffect(() => {
     enteredHomeWithHashRef.current = Boolean(hash);
@@ -1104,6 +1186,21 @@ export default function Home() {
   }, [homeRestoreStatus, restoredProjectId]);
 
   useEffect(() => {
+    const hashSectionId = getHomeHashSectionId(hash);
+    if (!hashSectionId || shouldPreserveHomeScroll) return;
+    if (isCanvasEnabled && (!scrollViewportRef.current || pages <= 1.01)) return;
+
+    const requestHashScroll = () => requestHashSectionScroll(hashSectionId, "auto");
+    const frame = window.requestAnimationFrame(requestHashScroll);
+    const timeouts = [120, 360, 720, 1400, 2600].map((delay) => window.setTimeout(requestHashScroll, delay));
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+      timeouts.forEach((timeout) => window.clearTimeout(timeout));
+    };
+  }, [hash, isCanvasEnabled, pages, profileSlug, scrollViewportVersion, shouldPreserveHomeScroll]);
+
+  useEffect(() => {
     const element = containerRef.current;
     if (!element) return;
 
@@ -1123,16 +1220,12 @@ export default function Home() {
       window.cancelAnimationFrame(frame);
       frame = window.requestAnimationFrame(() => {
         observeSections();
-        const sections = getHomeScrollSections(element);
-        const measuredHeight = sections.reduce((total, section) => {
-          if (!(section instanceof HTMLElement)) return total;
-          return Math.max(total, section.offsetTop + section.offsetHeight);
-        }, 0);
-        // Keep ScrollControls aligned to the last top-level section so the page
-        // does not expose dead overscroll space below the footer.
-        const totalHeight = measuredHeight > 0 ? measuredHeight : element.scrollHeight;
+        const totalHeight = getMeasuredHomeContentHeight(element);
         const vh = scrollViewportRef.current?.clientHeight || window.innerHeight || 1;
-        setPages(Math.max(1, (totalHeight + 1) / vh));
+        const visualScrollRange = Math.max(0, totalHeight - vh);
+        // Drei adds its own sticky viewport to the native scroll area; pages must
+        // describe visual content travel only, ending at the footer bottom.
+        setPages(Math.max(1, 1 + visualScrollRange / vh));
       });
     };
 
@@ -1143,7 +1236,10 @@ export default function Home() {
     const mutationObserver = new MutationObserver(updatePages);
     mutationObserver.observe(element, { childList: true });
     window.addEventListener("resize", updatePages);
-    const timeouts = [150, 350, 700, 1200].map((delay) => window.setTimeout(updatePages, delay));
+    document.fonts?.ready.then(updatePages).catch(() => {
+      // Font readiness is a best-effort layout stabilizer.
+    });
+    const timeouts = [150, 350, 700, 1200, 2000, 3200, 5000].map((delay) => window.setTimeout(updatePages, delay));
 
     return () => {
       window.cancelAnimationFrame(frame);
@@ -1152,7 +1248,7 @@ export default function Home() {
       window.removeEventListener("resize", updatePages);
       timeouts.forEach((timeout) => window.clearTimeout(timeout));
     };
-  }, [scrollViewportVersion]);
+  }, [profileSlug, scrollViewportVersion]);
 
   useEffect(() => {
     const isProductionBuild = (import.meta as ImportMeta & { env?: { PROD?: boolean } }).env?.PROD ?? false;
@@ -1194,7 +1290,7 @@ export default function Home() {
     const updateSectionRanges = () => {
       window.cancelAnimationFrame(frame);
       frame = window.requestAnimationFrame(() => {
-        setSectionRanges(measureHomeSceneRanges(element, scrollViewport));
+        setSectionRanges(measureHomeSceneRanges(element, scrollViewport, pages));
       });
     };
 
@@ -1297,7 +1393,7 @@ export default function Home() {
     if (!pendingHashSection || shouldPreserveHomeScroll) return;
 
     const metrics = getSectionScrollMetrics(pendingHashSection.sectionId);
-    if (!metrics || metrics.maxScroll + 1 < metrics.rawTargetTop) {
+    if (!canApplySectionScrollMetrics(metrics)) {
       const timeout = window.setTimeout(() => {
         setHashRetryVersion((current) => current + 1);
       }, 140);
@@ -1309,7 +1405,7 @@ export default function Home() {
       metrics.mode === "canvas" ? hasSettledCanvasHashTarget(pendingHashSection.sectionId, metrics.targetTop) : true;
 
     if (metrics.mode === "canvas" && !hasSettledCanvasTargetBeforeApply) {
-      nudgeCanvasHashTarget(metrics.targetTop, metrics.maxScroll);
+      nudgeCanvasHashTarget(metrics.targetTop, metrics.nativeMaxScroll);
     }
 
     applySectionScroll(pendingHashSection.sectionId, "auto");
@@ -1409,7 +1505,8 @@ export default function Home() {
 
       const heroTop = heroSection.offsetTop;
       const heroTravel = Math.max(heroSection.offsetHeight, scrollViewport.clientHeight * 0.95);
-      const rawProgress = (scrollViewport.scrollTop - heroTop) / heroTravel;
+      const visualScrollTop = getCanvasVisualTopForNativeScroll(scrollViewport.scrollTop, pages, scrollViewport);
+      const rawProgress = (visualScrollTop - heroTop) / heroTravel;
       heroIntroProgress.set(Math.max(0, Math.min(1, rawProgress)));
     };
 
@@ -1429,7 +1526,7 @@ export default function Home() {
       observer.disconnect();
       window.removeEventListener("resize", measureHeroState);
     };
-  }, [heroAnchorX, heroAnchorY, heroIntroProgress, scrollViewportVersion]);
+  }, [heroAnchorX, heroAnchorY, heroIntroProgress, pages, scrollViewportVersion]);
 
   if (!hasValidProfileSlug) {
     return (

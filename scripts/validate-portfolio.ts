@@ -70,6 +70,11 @@ async function assertLayoutContracts() {
   assert(!layout.includes("Previous site archive"), "Visible Previous site archive footer label must not return.");
 
   const home = await readRepoFile("src/pages/Home.tsx");
+  assert(
+    !home.includes("scrollViewportState.el.scrollHeight / viewportHeight"),
+    "Canvas scroll sync must not derive Drei pages from the native ScrollControls DOM height."
+  );
+
   const contactIndex = home.indexOf('data-home-scroll-section="contact"');
   const footerIndex = home.indexOf('data-home-scroll-section="footer"');
   assert(contactIndex > -1 && footerIndex > -1 && contactIndex < footerIndex, "Home page must keep contact immediately before footer.");
